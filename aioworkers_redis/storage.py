@@ -3,7 +3,7 @@ from aioworkers.storage.base import AbstractListedStorage, FieldStorageMixin
 from aioworkers_redis.base import RedisPool
 
 
-class RedisStorage(RedisPool, AbstractListedStorage):
+class Storage(RedisPool, AbstractListedStorage):
     def init(self):
         self._prefix = self.config.get('prefix')
         return super().init()
@@ -41,7 +41,7 @@ class RedisStorage(RedisPool, AbstractListedStorage):
             return self.decode(value)
 
 
-class FieldStorage(FieldStorageMixin, RedisStorage):
+class HashStorage(FieldStorageMixin, Storage):
 
     async def set(self, key, value, *, field=None, fields=None):
         raw_key = self.raw_key(key)

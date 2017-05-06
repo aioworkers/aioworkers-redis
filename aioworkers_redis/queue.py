@@ -7,7 +7,7 @@ from aioworkers.queue.base import AbstractQueue, score_queue
 from aioworkers_redis.base import RedisPool
 
 
-class RedisQueue(RedisPool, AbstractQueue):
+class Queue(RedisPool, AbstractQueue):
     def init(self):
         self._lock = asyncio.Lock(loop=self.loop)
         self._key = self.config.key
@@ -45,7 +45,7 @@ class RedisQueue(RedisPool, AbstractQueue):
 
 
 @score_queue('time.time')
-class RedisZQueue(RedisQueue):
+class ZQueue(Queue):
     async def init(self):
         await super().init()
         self._timeout = self.config.timeout
@@ -86,7 +86,7 @@ class RedisZQueue(RedisQueue):
 
 
 @score_queue('time.time')
-class TimestampZQueue(RedisZQueue.super):
+class TimestampZQueue(ZQueue.super):
     async def init(self):
         await super().init()
         self._script = """
