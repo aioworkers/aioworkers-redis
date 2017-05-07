@@ -4,14 +4,14 @@ import time
 import aioredis
 from aioworkers.queue.base import AbstractQueue, score_queue
 
-from aioworkers_redis.base import RedisPool
+from aioworkers_redis.base import Connector
 
 
-class Queue(RedisPool, AbstractQueue):
-    def init(self):
+class Queue(Connector, AbstractQueue):
+    async def init(self):
+        await super().init()
         self._lock = asyncio.Lock(loop=self.loop)
-        self._key = self.config.key
-        return super().init()
+        self._key = self.raw_key(self.config.key)
 
     async def put(self, value):
         value = self.encode(value)
@@ -46,14 +46,11 @@ class Queue(RedisPool, AbstractQueue):
 
 @score_queue('time.time')
 class ZQueue(Queue):
-    async def init(self):
-        await super().init()
-        self._timeout = self.config.timeout
-        self._script = """
-            local val = redis.call('zrange', KEYS[1], 0, 0, 'WITHSCORES')
-            if val[1] then redis.call('zrem', KEYS[1], val[1]) end
-            return val
-            """
+    script = """
+        local val = redis.call('zrange', KEYS[1], 0, 0, 'WITHSCORES')
+        if val[1] then redis.call('zrem', KEYS[1], val[1]) end
+        return val
+        """
 
     async def put(self, value):
         score, val = value
@@ -66,14 +63,14 @@ class ZQueue(Queue):
         while True:
             try:
                 async with self.pool as conn:
-                    lv = await conn.eval(self._script, [self._key])
+                    lv = await conn.eval(self.script, [self._key])
             except aioredis.errors.PoolClosedError:
                 await self._lock.acquire()
             if lv:
                 value, score = lv
                 self._lock.release()
                 return float(score), self.decode(value)
-            await asyncio.sleep(self._timeout, loop=self.loop)
+            await asyncio.sleep(self.config.timeout, loop=self.loop)
 
     async def length(self):
         async with self.pool as conn:
@@ -87,19 +84,17 @@ class ZQueue(Queue):
 
 @score_queue('time.time')
 class TimestampZQueue(ZQueue.super):
-    async def init(self):
-        await super().init()
-        self._script = """
-            local val = redis.call('ZRANGE', KEYS[1], 0, 0, 'WITHSCORES')
-            if val[1] then
-                if tonumber(val[2]) < tonumber(ARGV[1]) then
-                    redis.call('zrem', KEYS[1], val[1])
-                else
-                    return nil
-                end
+    script = """
+        local val = redis.call('ZRANGE', KEYS[1], 0, 0, 'WITHSCORES')
+        if val[1] then
+            if tonumber(val[2]) < tonumber(ARGV[1]) then
+                redis.call('zrem', KEYS[1], val[1])
+            else
+                return nil
             end
-            return val
-            """
+        end
+        return val
+        """
 
     async def get(self):
         await self._lock.acquire()
@@ -107,11 +102,11 @@ class TimestampZQueue(ZQueue.super):
             try:
                 async with self.pool as conn:
                     lv = await conn.eval(
-                        self._script, [self._key], [time.time()])
+                        self.script, [self._key], [time.time()])
             except aioredis.errors.PoolClosedError:
                 await self._lock.acquire()
             if lv:
                 value, score = lv
                 self._lock.release()
                 return float(score), self.decode(value)
-            await asyncio.sleep(self._timeout, loop=self.loop)
+            await asyncio.sleep(self.config.timeout, loop=self.loop)

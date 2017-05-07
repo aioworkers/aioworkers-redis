@@ -1,25 +1,19 @@
 from aioworkers.storage.base import AbstractListedStorage, FieldStorageMixin
 
-from aioworkers_redis.base import RedisPool
+from aioworkers_redis.base import Connector
 
 
-class Storage(RedisPool, AbstractListedStorage):
-    def init(self):
-        self._prefix = self.config.get('prefix')
-        return super().init()
-
-    def raw_key(self, key):
-        return self._prefix + key
-
+class Storage(Connector, AbstractListedStorage):
     async def list(self):
+        prefix = self.prefix
         async with self.pool as conn:
-            l = await conn.keys(self._prefix + '*')
-        p = len(self._prefix)
+            l = await conn.keys(prefix + '*')
+        p = len(prefix)
         return [i[p:].decode() for i in l]
 
     async def length(self):
         async with self.pool as conn:
-            l = await conn.keys(self._prefix + '*')
+            l = await conn.keys(self.raw_key('*'))
         return len(l)
 
     async def set(self, key, value):
