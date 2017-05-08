@@ -6,7 +6,7 @@ class Connector(FormattedEntity):
     async def init(self):
         await super().init()
         self._pool = None
-        if isinstance(self.config.connection, str):
+        if isinstance(self.config.get('connection'), str):
             path = self.config.connection
             self._connector = self.context[path]
         else:
@@ -17,7 +17,20 @@ class Connector(FormattedEntity):
 
     @property
     def prefix(self):
-        return self._connector.config.get('prefix', '')
+        p = []
+        c = self
+        while True:
+            pref = c.config.get('prefix')
+            if pref:
+                p.append(pref)
+            if c._connector is not c:
+                c = c._connector
+            else:
+                break
+        if p:
+            return ''.join(p[::-1])
+        else:
+            return ''
 
     def raw_key(self, key):
         prefix = self.prefix
@@ -26,17 +39,16 @@ class Connector(FormattedEntity):
         return prefix + key
 
     async def start(self):
-        cfg = self.config.connection
-        if isinstance(cfg, str):
+        if self._connector is not self:
             return
 
-        cfg = cfg.copy()
+        cfg = self.config.get('connection', {}).copy()
         address = cfg.pop('host', 'localhost'), cfg.pop('port', 6379)
         self._pool = await aioredis.create_pool(
             address, **cfg, loop=self.loop)
 
     async def stop(self):
-        if isinstance(self.config.connection, str):
+        if self._connector is not self:
             return
         self._pool.close()
         await self._pool.wait_closed()

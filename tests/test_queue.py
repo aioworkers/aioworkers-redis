@@ -10,7 +10,6 @@ from unittest import mock
 
 async def test_queue(loop):
     config = MergeDict(key=str(uuid.uuid4()))
-    config.connection = {}
     context = Context({}, loop=loop)
     q = Queue(config, context=context, loop=loop)
     await q.init()
@@ -30,7 +29,6 @@ async def test_queue_json(loop):
         key=str(uuid.uuid4()),
         format='json',
     )
-    config.connection = {}
     context = Context({}, loop=loop)
     q = Queue(config, context=context, loop=loop)
     await q.init()
@@ -51,7 +49,6 @@ async def test_zqueue(loop, mocker):
         format='str',
         timeout=0,
     )
-    config.connection = {}
     context = Context({}, loop=loop)
     q = ZQueue(config, context=context, loop=loop)
     await q.init()
@@ -84,7 +81,6 @@ async def test_ts_zqueue(loop, mocker):
         format='str',
         timeout=10,
     )
-    config.connection = {}
     context = Context({}, loop=loop)
     q = TimestampZQueue(config, context=context, loop=loop)
     await q.init()

@@ -11,7 +11,6 @@ async def test_storage(loop):
         prefix=str(uuid.uuid4()),
         format='json',
     )
-    config.connection = {}
     context = Context({}, loop=loop)
 
     q = Storage(config, context=context, loop=loop)
@@ -35,7 +34,6 @@ async def test_field_storage(loop):
         format='json',
     )
     context = Context({}, loop=loop)
-    config.connection = {}
     storage = HashStorage(config, context=context, loop=loop)
     await storage.init()
     async with storage:
