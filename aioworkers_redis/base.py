@@ -15,8 +15,7 @@ class Connector(FormattedEntity):
             self.context.on_start.append(self.start, groups)
             self.context.on_stop.append(self.stop, groups)
 
-    @property
-    def prefix(self):
+        # gen prefix
         p = []
         c = self
         while True:
@@ -28,15 +27,21 @@ class Connector(FormattedEntity):
             else:
                 break
         if p:
-            return ''.join(p[::-1])
+            p.reverse()
+            self._prefix = ''.join(p)
         else:
-            return ''
+            self._prefix = ''
 
     def raw_key(self, key):
-        prefix = self.prefix
-        if not prefix:
+        if not self._prefix:
             return key
-        return prefix + key
+        return self._prefix + key
+
+    def clean_key(self, raw_key):
+        result = raw_key[len(self._prefix):]
+        if isinstance(result, str):
+            return result
+        return result.decode()
 
     async def start(self):
         if self._connector is not self:

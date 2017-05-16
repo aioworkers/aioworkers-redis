@@ -17,3 +17,4 @@ async def test_connect(loop):
     await q.init()
     async with q:
         assert q.raw_key('3') == '123'
+        assert q.clean_key('123') == '3'
