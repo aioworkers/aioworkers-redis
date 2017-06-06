@@ -13,7 +13,7 @@ test_requirements = [
 
 setup(
     name='aioworkers_redis',
-    version='0.0.1',
+    version='0.1.0',
     description="Module for working with redis",
     author="Alexander Malev",
     author_email='yttrium@somedev.ru',
@@ -22,7 +22,7 @@ setup(
     include_package_data=True,
     install_requires=requirements,
     license="Apache Software License 2.0",
-    keywords='aioworkers',
+    keywords='aioworkers redis',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
