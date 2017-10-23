@@ -6,31 +6,9 @@ class Connector(FormattedEntity):
     async def init(self):
         await super().init()
         self._pool = None
-        if isinstance(self.config.get('connection'), str):
-            path = self.config.connection
-            self._connector = self.context[path]
-        else:
-            self._connector = self
-            groups = self.config.get('groups')
-            self.context.on_start.append(self.start, groups)
-            self.context.on_stop.append(self.stop, groups)
-
-        # gen prefix
-        p = []
-        c = self
-        while True:
-            pref = c.config.get('prefix')
-            if pref:
-                p.append(pref)
-            if c._connector is not c:
-                c = c._connector
-            else:
-                break
-        if p:
-            p.reverse()
-            self._prefix = ''.join(p)
-        else:
-            self._prefix = ''
+        self._prefix = self.config.get('prefix', '')
+        groups = self.config.get('groups')
+        self.context.on_start.append(self.start, groups)
 
     def raw_key(self, key):
         if not self._prefix:
@@ -44,10 +22,43 @@ class Connector(FormattedEntity):
         return result.decode()
 
     async def start(self):
-        if self._connector is not self:
+        if self._pool is not None:
             return
 
-        cfg = self.config.get('connection', {}).copy()
+        connect_params = None
+
+        if isinstance(self.config.get('connection'), str):
+            path = self.config.connection
+            self._connector = self.context[path]
+        else:
+            self._connector = self
+            connect_params = self.config.get('connection', {})
+
+        # gen prefix
+        p = []
+        c = self
+        while True:
+            pref = c.config.get('prefix')
+            if pref:
+                p.append(pref)
+            if c._connector is not c:
+                c = c._connector
+            else:
+                if self.config.get('connect'):
+                    self._connector = self
+                    connect_params = c.config.get('connection', {})
+                break
+        if p:
+            p.reverse()
+            self._prefix = ''.join(p)
+
+        if connect_params is None:
+            return
+
+        groups = self.config.get('groups')
+        self.context.on_stop.append(self.stop, groups)
+
+        cfg = connect_params.copy()
         address = cfg.pop('host', 'localhost'), cfg.pop('port', 6379)
         self._pool = await aioredis.create_pool(
             address, **cfg, loop=self.loop)
