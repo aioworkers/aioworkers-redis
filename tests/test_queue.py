@@ -24,6 +24,18 @@ async def test_queue(loop):
         assert not await q.length()
 
 
+async def test_nested_queue(loop):
+    config = MergeDict(key=str(uuid.uuid4()), format='json', name='q')
+    context = Context({}, loop=loop)
+    q = Queue(config, context=context, loop=loop)
+    await q.init()
+    async with q:
+        q_child = q.child
+        await q_child.put(1)
+        assert q_child._key == config.key + ':child'
+        assert 1 == await q_child.get()
+
+
 async def test_queue_json(loop):
     config = MergeDict(
         key=str(uuid.uuid4()),

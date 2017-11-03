@@ -24,6 +24,18 @@ async def test_storage(loop):
         assert not await q.length()
 
 
+async def test_nested_storage(loop):
+    config = MergeDict(name='1', prefix=str(uuid.uuid4()), format='json')
+    context = Context({}, loop=loop)
+    q = Storage(config, context=context, loop=loop)
+    await q.init()
+    async with q:
+        q_child = q.child
+        await q_child.set('1', 1)
+        assert q_child.raw_key('1') == config.prefix + ':child:1'
+        assert 1 == await q_child.get('1')
+
+
 async def test_field_storage(loop):
     key = '6'
     data = {'f': 3, 'g': 4, 'h': 5}

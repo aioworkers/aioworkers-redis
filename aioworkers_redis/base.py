@@ -1,28 +1,60 @@
+import logging
+
 import aioredis
+from aioworkers.core.base import AbstractNestedEntity
 from aioworkers.core.formatter import FormattedEntity
 
 
-class Connector(FormattedEntity):
+logger = logging.getLogger('aioworkers_redis')
+
+
+class Connector(AbstractNestedEntity, FormattedEntity):
     async def init(self):
         await super().init()
-        self._pool = None
+        self._fut_pool = self.loop.create_future()
         self._prefix = self.config.get('prefix', '')
+        self._joiner = self.config.get('joiner', ':')
+        self._connector = self
         groups = self.config.get('groups')
         self.context.on_start.append(self.start, groups)
+        self.context.on_stop.append(self.stop, groups)
+
+    def factory(self, item):
+        inst = super().factory(item)
+        inst._connector = self._connector
+        inst._joiner = self._joiner
+        inst._formatter = self._formatter
+        inst._prefix = self.raw_key(item)
+        return inst
 
     def raw_key(self, key):
-        if not self._prefix:
-            return key
-        return self._prefix + key
+        k = self._prefix, key
+        k = [i for i in k if i] or ''
+        return self._joiner.join(k)
 
     def clean_key(self, raw_key):
-        result = raw_key[len(self._prefix):]
+        result = raw_key[len(self._prefix) + len(self._joiner):]
         if isinstance(result, str):
             return result
         return result.decode()
 
+    async def get_pool(self):
+        fp = self._connector._fut_pool
+        if not fp.done():
+            return await fp
+        elif fp.cancelled():
+            raise RuntimeError('Pool not ready')
+        elif fp.exception():
+            raise fp.exception()
+        else:
+            return fp.result()
+
+    async def acquire(self):
+        pool = await self.get_pool()
+        return pool.get()
+
     async def start(self):
-        if self._pool is not None:
+        if self._fut_pool.done():
             return
 
         connect_params = None
@@ -55,24 +87,22 @@ class Connector(FormattedEntity):
         if connect_params is None:
             return
 
-        groups = self.config.get('groups')
-        self.context.on_stop.append(self.stop, groups)
-
         cfg = connect_params.copy()
         address = cfg.pop('host', 'localhost'), cfg.pop('port', 6379)
-        self._pool = await aioredis.create_pool(
-            address, **cfg, loop=self.loop)
+        try:
+            pool = await aioredis.create_pool(address, **cfg, loop=self.loop)
+        except OSError as e:
+            logger.critical('An error occurred while connecting to the redis %s', e)
+            return
+        self._fut_pool.set_result(pool)
 
     async def stop(self):
         if self._connector is not self:
             return
-        self._pool.close()
-        await self._pool.wait_closed()
-        self._pool = None
-
-    @property
-    def pool(self):
-        return self._connector._pool.get()
+        pool = await self.get_pool()
+        pool.close()
+        await pool.wait_closed()
+        self._fut_pool = self.loop.create_future()
 
     def decode(self, b):
         if b is not None:

@@ -13,15 +13,22 @@ class Queue(Connector, AbstractQueue):
         self._lock = asyncio.Lock(loop=self.loop)
         self._key = self.raw_key(self.config.key)
 
+    def factory(self, item):
+        inst = super().factory(item)
+        inst._prefix = self._key
+        inst._key = inst.raw_key(item)
+        inst._lock = asyncio.Lock(loop=self.loop)
+        return inst
+
     async def put(self, value):
         value = self.encode(value)
-        async with self.pool as conn:
+        async with await self.acquire() as conn:
             return await conn.rpush(self._key, value)
 
     async def get(self):
         await self._lock.acquire()
         try:
-            async with self.pool as conn:
+            async with await self.acquire() as conn:
                 result = await conn.blpop(self._key)
             self._lock.release()
         except aioredis.errors.PoolClosedError:
@@ -30,17 +37,17 @@ class Queue(Connector, AbstractQueue):
         return value
 
     async def length(self):
-        async with self.pool as conn:
+        async with await self.acquire() as conn:
             return await conn.llen(self._key)
 
     async def list(self):
-        async with self.pool as conn:
+        async with await self.acquire() as conn:
             return [
                 self.decode(i)
                 for i in await conn.lrange(self._key, 0, -1)]
 
     async def clear(self):
-        async with self.pool as conn:
+        async with await self.acquire() as conn:
             return await conn.delete(self._key)
 
 
@@ -55,14 +62,14 @@ class ZQueue(Queue):
     async def put(self, value):
         score, val = value
         val = self.encode(val)
-        async with self.pool as conn:
+        async with await self.acquire() as conn:
             return await conn.zadd(self._key, score, val)
 
     async def get(self):
         await self._lock.acquire()
         while True:
             try:
-                async with self.pool as conn:
+                async with await self.acquire() as conn:
                     lv = await conn.eval(self.script, [self._key])
             except aioredis.errors.PoolClosedError:
                 await self._lock.acquire()
@@ -73,11 +80,11 @@ class ZQueue(Queue):
             await asyncio.sleep(self.config.timeout, loop=self.loop)
 
     async def length(self):
-        async with self.pool as conn:
+        async with await self.acquire() as conn:
             return await conn.zcard(self._key)
 
     async def list(self):
-        async with self.pool as conn:
+        async with await self.acquire() as conn:
             return [self.decode(i)
                     for i in await conn.zrange(self._key)]
 
@@ -100,7 +107,7 @@ class TimestampZQueue(ZQueue.super):
         await self._lock.acquire()
         while True:
             try:
-                async with self.pool as conn:
+                async with await self.acquire() as conn:
                     lv = await conn.eval(
                         self.script, [self._key], [time.time()])
             except aioredis.errors.PoolClosedError:
