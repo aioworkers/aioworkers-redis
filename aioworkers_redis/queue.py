@@ -1,7 +1,6 @@
 import asyncio
 import time
 
-import aioredis
 from aioworkers.queue.base import AbstractQueue, score_queue
 
 from aioworkers_redis.base import Connector
@@ -22,32 +21,28 @@ class Queue(Connector, AbstractQueue):
 
     async def put(self, value):
         value = self.encode(value)
-        async with await self.acquire() as conn:
+        async with self.acquire() as conn:
             return await conn.rpush(self._key, value)
 
     async def get(self):
-        await self._lock.acquire()
-        try:
-            async with await self.acquire() as conn:
+        async with self._lock:
+            async with self.acquire() as conn:
                 result = await conn.blpop(self._key)
-            self._lock.release()
-        except aioredis.errors.PoolClosedError:
-            await self._lock.acquire()
         value = self.decode(result[-1])
         return value
 
     async def length(self):
-        async with await self.acquire() as conn:
+        async with self.acquire() as conn:
             return await conn.llen(self._key)
 
     async def list(self):
-        async with await self.acquire() as conn:
+        async with self.acquire() as conn:
             return [
                 self.decode(i)
                 for i in await conn.lrange(self._key, 0, -1)]
 
     async def clear(self):
-        async with await self.acquire() as conn:
+        async with self.acquire() as conn:
             return await conn.delete(self._key)
 
 
@@ -62,29 +57,26 @@ class ZQueue(Queue):
     async def put(self, value):
         score, val = value
         val = self.encode(val)
-        async with await self.acquire() as conn:
+        async with self.acquire() as conn:
             return await conn.zadd(self._key, score, val)
 
     async def get(self):
-        await self._lock.acquire()
-        while True:
-            try:
-                async with await self.acquire() as conn:
+        async with self._lock:
+            while True:
+                async with self.acquire() as conn:
                     lv = await conn.eval(self.script, [self._key])
-            except aioredis.errors.PoolClosedError:
-                await self._lock.acquire()
-            if lv:
-                value, score = lv
-                self._lock.release()
-                return float(score), self.decode(value)
-            await asyncio.sleep(self.config.timeout, loop=self.loop)
+                if lv:
+                    break
+                await asyncio.sleep(self.config.timeout, loop=self.loop)
+        value, score = lv
+        return float(score), self.decode(value)
 
     async def length(self):
-        async with await self.acquire() as conn:
+        async with self.acquire() as conn:
             return await conn.zcard(self._key)
 
     async def list(self):
-        async with await self.acquire() as conn:
+        async with self.acquire() as conn:
             return [self.decode(i)
                     for i in await conn.zrange(self._key)]
 
@@ -104,16 +96,13 @@ class TimestampZQueue(ZQueue.super):
         """
 
     async def get(self):
-        await self._lock.acquire()
-        while True:
-            try:
-                async with await self.acquire() as conn:
+        async with self._lock:
+            while True:
+                async with self.acquire() as conn:
                     lv = await conn.eval(
                         self.script, [self._key], [time.time()])
-            except aioredis.errors.PoolClosedError:
-                await self._lock.acquire()
-            if lv:
-                value, score = lv
-                self._lock.release()
-                return float(score), self.decode(value)
-            await asyncio.sleep(self.config.timeout, loop=self.loop)
+                if lv:
+                    break
+                await asyncio.sleep(self.config.timeout, loop=self.loop)
+        value, score = lv
+        return float(score), self.decode(value)

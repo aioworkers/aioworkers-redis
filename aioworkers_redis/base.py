@@ -49,9 +49,8 @@ class Connector(AbstractNestedEntity, FormattedEntity):
         else:
             return fp.result()
 
-    async def acquire(self):
-        pool = await self.get_pool()
-        return pool.get()
+    def acquire(self):
+        return AsyncConnectionContextManager(self._connector)
 
     async def start(self):
         if self._fut_pool.done():
@@ -87,7 +86,19 @@ class Connector(AbstractNestedEntity, FormattedEntity):
         if connect_params is None:
             return
 
-        cfg = connect_params.copy()
+        self._connect_params = connect_params
+        await self.connect(create_future=False, force=True)
+
+    async def connect(self, force=False, create_future=True):
+        if self._connector is not self:
+            return
+        elif not create_future and force:
+            pass
+        elif self._fut_pool.done() or force:
+            self._fut_pool = self.loop.create_future()
+        else:
+            return
+        cfg = self._connect_params.copy()
         address = cfg.pop('host', 'localhost'), cfg.pop('port', 6379)
         try:
             pool = await aioredis.create_pool(address, **cfg, loop=self.loop)
@@ -118,3 +129,30 @@ class Connector(AbstractNestedEntity, FormattedEntity):
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.stop()
+
+
+class AsyncConnectionContextManager:
+
+    __slots__ = ('_connector', '_pool', '_conn')
+
+    def __init__(self, connector: Connector):
+        self._connector = connector
+        self._pool = None
+        self._conn = None
+
+    async def __aenter__(self):
+        while True:
+            self._pool = await self._connector.get_pool()
+            try:
+                self._conn = await self._pool.acquire()
+            except aioredis.PoolClosedError:
+                await self._connector.connect()
+            else:
+                return self._conn
+
+    async def __aexit__(self, exc_type, exc_value, tb):
+        try:
+            self._pool.release(self._conn)
+        finally:
+            self._pool = None
+            self._conn = None

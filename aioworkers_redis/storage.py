@@ -5,12 +5,12 @@ from aioworkers_redis.base import Connector
 
 class Storage(Connector, AbstractListedStorage):
     async def list(self):
-        async with await self.acquire() as conn:
+        async with self.acquire() as conn:
             l = await conn.keys(self.raw_key('*'))
         return [self.clean_key(i) for i in l]
 
     async def length(self):
-        async with await self.acquire() as conn:
+        async with self.acquire() as conn:
             l = await conn.keys(self.raw_key('*'))
         return len(l)
 
@@ -19,7 +19,7 @@ class Storage(Connector, AbstractListedStorage):
         is_null = value is None
         if not is_null:
             value = self.encode(value)
-        async with await self.acquire() as conn:
+        async with self.acquire() as conn:
             if is_null:
                 return await conn.delete(raw_key)
             else:
@@ -27,7 +27,7 @@ class Storage(Connector, AbstractListedStorage):
 
     async def get(self, key):
         raw_key = self.raw_key(key)
-        async with await self.acquire() as conn:
+        async with self.acquire() as conn:
             value = await conn.get(raw_key)
         if value is not None:
             return self.decode(value)
@@ -38,7 +38,7 @@ class HashStorage(FieldStorageMixin, Storage):
     async def set(self, key, value, *, field=None, fields=None):
         raw_key = self.raw_key(key)
         to_del = []
-        async with await self.acquire() as conn:
+        async with self.acquire() as conn:
             if field:
                 if value is None:
                     to_del.append(field)
@@ -61,7 +61,7 @@ class HashStorage(FieldStorageMixin, Storage):
 
     async def get(self, key, *, field=None, fields=None):
         raw_key = self.raw_key(key)
-        async with await self.acquire() as conn:
+        async with self.acquire() as conn:
             if field:
                 return self.decode(await conn.hget(raw_key, field))
             elif fields:

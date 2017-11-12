@@ -5,7 +5,6 @@ import pytest
 from aioworkers.core.config import MergeDict
 from aioworkers.core.context import Context
 from aioworkers_redis.queue import Queue, ZQueue, TimestampZQueue
-from unittest import mock
 
 
 async def test_queue(loop):
@@ -98,15 +97,6 @@ async def test_ts_zqueue(loop, mocker):
     await q.init()
 
     async with q:
-
-        async def breaker(*args, **kwargs):
-            q._lock.release()
-            raise InterruptedError
-
-        with pytest.raises(InterruptedError):
-            with mock.patch('asyncio.sleep', breaker):
-                await q.get()
-
         await q.put('c', time.time() + 4)
         await q.put('a', 4)
         assert 2 == await q.length()
@@ -115,6 +105,9 @@ async def test_ts_zqueue(loop, mocker):
         assert 1 == await q.length()
         assert ['c'] == await q.list()
 
+        async def breaker(*args, **kwargs):
+            raise InterruptedError
+
+        mocker.patch('asyncio.sleep', breaker)
         with pytest.raises(InterruptedError):
-            with mock.patch('asyncio.sleep', breaker):
-                await q.get()
+            await q.get()
