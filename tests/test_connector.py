@@ -16,5 +16,5 @@ async def test_connect(loop):
     q = Connector(config, context=context, loop=loop)
     await q.init()
     async with q:
-        assert q.raw_key('3') == '12:3'
-        assert q.clean_key('12:3') == '3'
+        assert q.raw_key('3') == '1:2:3'
+        assert q.clean_key('1:2:3') == '3'

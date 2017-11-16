@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 import aioredis
@@ -10,11 +11,20 @@ logger = logging.getLogger('aioworkers_redis')
 
 class Connector(AbstractNestedEntity, FormattedEntity):
     async def init(self):
+        self._connector = None
+        self._prefix = None
+
+        if isinstance(self.config.get('connection'), str):
+            path = self.config.connection
+            self._connector = self.context[path]
+        else:
+            self._connector = self
+
+        self._ready_pool = asyncio.Event(loop=self.loop)
         await super().init()
-        self._fut_pool = self.loop.create_future()
-        self._prefix = self.config.get('prefix', '')
         self._joiner = self.config.get('joiner', ':')
-        self._connector = self
+        self._pool = None
+        self._connect_lock = asyncio.Lock(loop=self.loop)
         groups = self.config.get('groups')
         self.context.on_start.append(self.start, groups)
         self.context.on_stop.append(self.stop, groups)
@@ -22,12 +32,21 @@ class Connector(AbstractNestedEntity, FormattedEntity):
     def factory(self, item):
         inst = super().factory(item)
         inst._connector = self._connector
+        inst._ready_pool = self._ready_pool
         inst._joiner = self._joiner
         inst._formatter = self._formatter
         inst._prefix = self.raw_key(item)
         return inst
 
     def raw_key(self, key):
+        if self._prefix is not None:
+            pass
+        elif isinstance(self.config.get('connection'), str):
+            path = self.config.get('connection')
+            self._prefix = self.context[path].raw_key(
+                self.config.get('prefix', ''))
+        else:
+            self._prefix = self.config.get('prefix', '')
         k = self._prefix, key
         k = [i for i in k if i] or ''
         return self._joiner.join(k)
@@ -38,22 +57,11 @@ class Connector(AbstractNestedEntity, FormattedEntity):
             return result
         return result.decode()
 
-    async def get_pool(self):
-        fp = self._connector._fut_pool
-        if not fp.done():
-            return await fp
-        elif fp.cancelled():
-            raise RuntimeError('Pool not ready')
-        elif fp.exception():
-            raise fp.exception()
-        else:
-            return fp.result()
-
     def acquire(self):
         return AsyncConnectionContextManager(self._connector)
 
     async def start(self):
-        if self._fut_pool.done():
+        if self._ready_pool.is_set():
             return
 
         connect_params = None
@@ -65,13 +73,8 @@ class Connector(AbstractNestedEntity, FormattedEntity):
             self._connector = self
             connect_params = self.config.get('connection', {})
 
-        # gen prefix
-        p = []
         c = self
         while True:
-            pref = c.config.get('prefix')
-            if pref:
-                p.append(pref)
             if c._connector is not c:
                 c = c._connector
             else:
@@ -79,41 +82,38 @@ class Connector(AbstractNestedEntity, FormattedEntity):
                     self._connector = self
                     connect_params = c.config.get('connection', {})
                 break
-        if p:
-            p.reverse()
-            self._prefix = ''.join(p)
 
         if connect_params is None:
             return
 
         self._connect_params = connect_params
-        await self.connect(create_future=False, force=True)
+        await self.connect(force=True)
 
-    async def connect(self, force=False, create_future=True):
+    async def connect(self, force=False):
         if self._connector is not self:
             return
-        elif not create_future and force:
-            pass
-        elif self._fut_pool.done() or force:
-            self._fut_pool = self.loop.create_future()
-        else:
-            return
-        cfg = self._connect_params.copy()
-        address = cfg.pop('host', 'localhost'), cfg.pop('port', 6379)
-        try:
-            pool = await aioredis.create_pool(address, **cfg, loop=self.loop)
-        except OSError as e:
-            logger.critical('An error occurred while connecting to the redis %s', e)
-            return
-        self._fut_pool.set_result(pool)
+        async with self._connect_lock:
+            if force:
+                self._ready_pool.clear()
+            elif self._ready_pool.is_set():
+                return
+            cfg = self._connect_params.copy()
+            address = cfg.pop('host', 'localhost'), cfg.pop('port', 6379)
+            try:
+                self._pool = await aioredis.create_pool(address, **cfg, loop=self.loop)
+            except OSError as e:
+                logger.critical('An error occurred while connecting to the redis %s', e)
+                return
+            self._ready_pool.set()
 
     async def stop(self):
         if self._connector is not self:
             return
-        pool = await self.get_pool()
-        pool.close()
-        await pool.wait_closed()
-        self._fut_pool = self.loop.create_future()
+        elif not self._ready_pool.is_set():
+            return
+        self._pool.close()
+        await self._pool.wait_closed()
+        self._ready_pool.clear()
 
     def decode(self, b):
         if b is not None:
@@ -133,26 +133,26 @@ class Connector(AbstractNestedEntity, FormattedEntity):
 
 class AsyncConnectionContextManager:
 
-    __slots__ = ('_connector', '_pool', '_conn')
+    __slots__ = ('_connector', '_conn')
 
     def __init__(self, connector: Connector):
         self._connector = connector
-        self._pool = None
         self._conn = None
 
     async def __aenter__(self):
+        c = self._connector
         while True:
-            self._pool = await self._connector.get_pool()
+            await c._ready_pool.wait()
             try:
-                self._conn = await self._pool.acquire()
+                self._conn = await c._pool.acquire()
             except aioredis.PoolClosedError:
-                await self._connector.connect()
+                c._ready_pool.clear()
+                await c.connect()
             else:
                 return self._conn
 
     async def __aexit__(self, exc_type, exc_value, tb):
         try:
-            self._pool.release(self._conn)
+            self._connector._pool.release(self._conn)
         finally:
-            self._pool = None
             self._conn = None
