@@ -10,11 +10,16 @@ class Queue(Connector, AbstractQueue):
     async def init(self):
         await super().init()
         self._lock = asyncio.Lock(loop=self.loop)
-        self._key = self.raw_key(self.config.key)
+
+    @property
+    def key(self):
+        if not hasattr(self, '_key'):
+            self._key = self.raw_key(self.config.key)
+        return self._key
 
     def factory(self, item):
         inst = super().factory(item)
-        inst._prefix = self._key
+        inst._prefix = self.raw_key(self.config.key)
         inst._key = inst.raw_key(item)
         inst._lock = asyncio.Lock(loop=self.loop)
         return inst
@@ -22,12 +27,12 @@ class Queue(Connector, AbstractQueue):
     async def put(self, value):
         value = self.encode(value)
         async with self.acquire() as conn:
-            return await conn.rpush(self._key, value)
+            return await conn.rpush(self.key, value)
 
     async def get(self):
         async with self._lock:
             async with self.acquire() as conn:
-                result = await conn.blpop(self._key)
+                result = await conn.blpop(self.key)
         value = self.decode(result[-1])
         return value
 
@@ -39,11 +44,11 @@ class Queue(Connector, AbstractQueue):
         async with self.acquire() as conn:
             return [
                 self.decode(i)
-                for i in await conn.lrange(self._key, 0, -1)]
+                for i in await conn.lrange(self.key, 0, -1)]
 
     async def clear(self):
         async with self.acquire() as conn:
-            return await conn.delete(self._key)
+            return await conn.delete(self.key)
 
 
 @score_queue('time.time')
@@ -58,13 +63,13 @@ class ZQueue(Queue):
         score, val = value
         val = self.encode(val)
         async with self.acquire() as conn:
-            return await conn.zadd(self._key, score, val)
+            return await conn.zadd(self.key, score, val)
 
     async def get(self):
         async with self._lock:
             while True:
                 async with self.acquire() as conn:
-                    lv = await conn.eval(self.script, [self._key])
+                    lv = await conn.eval(self.script, [self.key])
                 if lv:
                     break
                 await asyncio.sleep(self.config.timeout, loop=self.loop)
@@ -73,12 +78,12 @@ class ZQueue(Queue):
 
     async def length(self):
         async with self.acquire() as conn:
-            return await conn.zcard(self._key)
+            return await conn.zcard(self.key)
 
     async def list(self):
         async with self.acquire() as conn:
             return [self.decode(i)
-                    for i in await conn.zrange(self._key)]
+                    for i in await conn.zrange(self.key)]
 
 
 @score_queue('time.time')
@@ -100,7 +105,7 @@ class TimestampZQueue(ZQueue.super):
             while True:
                 async with self.acquire() as conn:
                     lv = await conn.eval(
-                        self.script, [self._key], [time.time()])
+                        self.script, [self.key], [time.time()])
                 if lv:
                     break
                 await asyncio.sleep(self.config.timeout, loop=self.loop)
