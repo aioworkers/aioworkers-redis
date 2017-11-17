@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 requirements = [
-    'aioworkers>=0.7.0',
+    'aioworkers>=0.8.0',
     'aioredis==0.3.4',
 ]
 
@@ -13,7 +13,7 @@ test_requirements = [
 
 setup(
     name='aioworkers_redis',
-    version='0.2.0',
+    version='0.3.0',
     description="Module for working with redis",
     author="Alexander Malev",
     author_email='yttrium@somedev.ru',
