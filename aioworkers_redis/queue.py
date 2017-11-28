@@ -46,6 +46,11 @@ class Queue(Connector, AbstractQueue):
                 self.decode(i)
                 for i in await conn.lrange(self.key, 0, -1)]
 
+    async def remove(self, value):
+        value = self.encode(value)
+        async with self.acquire() as conn:
+            await conn.lrem(self.key, 0, value)
+
     async def clear(self):
         async with self.acquire() as conn:
             return await conn.delete(self.key)
@@ -84,6 +89,11 @@ class ZQueue(Queue):
         async with self.acquire() as conn:
             return [self.decode(i)
                     for i in await conn.zrange(self.key)]
+
+    async def remove(self, value):
+        value = self.encode(value)
+        async with self.acquire() as conn:
+            await conn.zrem(self.key, value)
 
 
 @score_queue('time.time')

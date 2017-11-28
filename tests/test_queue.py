@@ -21,6 +21,10 @@ async def test_queue(loop):
         assert 1 == await q.length()
         await q.clear()
         assert not await q.length()
+        await q.put(3)
+        assert 1 == await q.length()
+        await q.remove(3)
+        assert not await q.length()
 
 
 async def test_nested_queue(loop):
@@ -79,6 +83,10 @@ async def test_zqueue(loop, mocker):
         assert 1 == await q.length()
         assert 'c' == await q.get()
         assert [] == await q.list()
+        assert not await q.length()
+        await q.put('3')
+        assert 1 == await q.length()
+        await q.remove('3')
         assert not await q.length()
 
         with pytest.raises(TypeError):
