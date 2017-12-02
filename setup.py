@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 requirements = [
     'aioworkers>=0.8.0',
-    'aioredis==0.3.4',
+    'aioredis==1.0.0',
 ]
 
 test_requirements = [
