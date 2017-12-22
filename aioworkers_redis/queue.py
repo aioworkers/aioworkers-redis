@@ -38,7 +38,7 @@ class Queue(Connector, AbstractQueue):
 
     async def length(self):
         async with self.acquire() as conn:
-            return await conn.execute('llen', self._key)
+            return await conn.execute('llen', self.key)
 
     async def list(self):
         async with self.acquire() as conn:
