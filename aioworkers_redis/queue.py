@@ -29,10 +29,10 @@ class Queue(Connector, AbstractQueue):
         async with self.acquire() as conn:
             return await conn.execute('rpush', self.key, value)
 
-    async def get(self):
+    async def get(self, *, timeout=0):
         async with self._lock:
             async with self.acquire() as conn:
-                result = await conn.execute('blpop', self.key, 0)
+                result = await conn.execute('blpop', self.key, timeout)
         value = self.decode(result[-1])
         return value
 
