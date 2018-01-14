@@ -25,6 +25,8 @@ async def test_queue(loop):
         assert 1 == await q.length()
         await q.remove(3)
         assert not await q.length()
+        with pytest.raises(TimeoutError):
+            await q.get(timeout=1)
 
 
 async def test_nested_queue(loop):

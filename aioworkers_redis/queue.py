@@ -33,6 +33,8 @@ class Queue(Connector, AbstractQueue):
         async with self._lock:
             async with self.acquire() as conn:
                 result = await conn.execute('blpop', self.key, timeout)
+        if timeout and result is None:
+            raise TimeoutError
         value = self.decode(result[-1])
         return value
 
