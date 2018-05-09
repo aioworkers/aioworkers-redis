@@ -97,7 +97,7 @@ class Connector(AbstractNestedEntity, FormattedEntity):
                 self._ready_pool.clear()
             elif self._ready_pool.is_set():
                 return
-            cfg = self._connect_params.copy()
+            cfg = dict(self._connect_params)
             address = cfg.pop('host', 'localhost'), cfg.pop('port', 6379)
             try:
                 self._pool = await aioredis.create_pool(address, **cfg, loop=self.loop)
