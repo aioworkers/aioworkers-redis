@@ -13,7 +13,7 @@ test_requirements = [
 
 setup(
     name='aioworkers-redis',
-    version='0.4.2',
+    version='0.4.3',
     description="Module for working with redis",
     author="Alexander Malev",
     author_email='yttrium@somedev.ru',
