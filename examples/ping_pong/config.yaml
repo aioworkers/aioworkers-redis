@@ -1,0 +1,23 @@
+worker:
+  ping:
+    cls: aioworkers.worker.base.Worker
+    run: worker.run
+    autorun: true
+    input: queue.pong
+    output: queue.ping
+    groups: ['ping']
+  pong:
+    cls: aioworkers.worker.base.Worker
+    run: worker.run
+    autorun: true
+    input: queue.ping
+    output: queue.pong
+    groups: ['pong']
+
+queue:
+  ping:
+    cls: aioworkers_redis.queue.Queue
+    key: queue:ping
+  pong:
+    cls: aioworkers_redis.queue.Queue
+    key: queue:pong
