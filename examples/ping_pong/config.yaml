@@ -14,10 +14,16 @@ worker:
     output: queue.pong
     groups: ['pong']
 
+redis:
+  cls: aioworkers_redis.base.Connector
+  prefix: pingpong
+
 queue:
   ping:
     cls: aioworkers_redis.queue.Queue
-    key: queue:ping
+    connection: redis
+    key: ping
   pong:
     cls: aioworkers_redis.queue.Queue
-    key: queue:pong
+    connection: redis
+    key: pong

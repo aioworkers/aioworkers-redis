@@ -1,4 +1,4 @@
-Basic example of using `aioworkers_redis`.
+# Basic example of using `aioworkers_redis`.
 
 Install aioworkers-redis to your `Python` interpreter:
 
@@ -6,7 +6,7 @@ Install aioworkers-redis to your `Python` interpreter:
 pip install -r requirements.txt
 ```
 
-Run the app:
+## Run workers in single process
 
 ```bash
 aioworkers -c config.yaml -l info -g
@@ -17,12 +17,20 @@ This command will run single process with two workers.
 Push message to queue to start workers communication:
 
 ```bash
-redis-cli lpush queue:ping 'start'
+redis-cli lpush pingpong:ping 'start'
 ```
 
-Run two separate processes. Use groups to select different workers to process. 
+## Run workers in two processes
+ 
+Use groups to select different workers to process. 
 
 ```bash
 aioworkers -c config.yaml -l info +g ping
 aioworkers -c config.yaml -l info +g pong
+```
+
+Push message to queue to start workers communication:
+
+```bash
+redis-cli lpush pingpong:ping 'start'
 ```
