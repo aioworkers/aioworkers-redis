@@ -12,6 +12,7 @@ pytest-flake8 = "*"
 pytest-mypy = "*"
 pytest-mock = "*"
 pytest-sugar = "*"
+pytest-cov = "*"
 
 [requires]
 python_version = "3.6"
