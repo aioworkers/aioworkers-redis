@@ -13,6 +13,7 @@ pytest-mypy = "*"
 pytest-mock = "*"
 pytest-sugar = "*"
 pytest-cov = "*"
+pyyaml = "*"
 
 [requires]
 python_version = "3.6"
