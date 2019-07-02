@@ -1,20 +1,19 @@
-from aioworkers.core.config import MergeDict
-from aioworkers.core.context import Context
+import pytest
+
 from aioworkers_redis.base import Connector
 
 
-async def test_connect(loop):
-    context = Context({}, loop=loop)
-    config = MergeDict(prefix='1')
-    q = Connector(config, context=context, loop=loop)
-    context.connector = q
-    await q.init()
-    async with q:
-        pass
+@pytest.fixture
+def config_yaml():
+    return """
+    connector:
+      cls: aioworkers_redis.base.Connector
+      prefix: a
+    """
 
-    config = MergeDict(connection='connector', prefix='2')
-    q = Connector(config, context=context, loop=loop)
-    await q.init()
-    async with q:
-        assert q.raw_key('3') == '1:2:3'
-        assert q.clean_key('1:2:3') == '3'
+
+async def test_connect(context):
+    assert context.connector.raw_key('3') == 'a:3'
+    assert context.connector.b.raw_key('3') == 'a:b:3'
+    assert context.connector.clean_key('a:3') == '3'
+
