@@ -81,9 +81,13 @@ celerybeat-schedule
 # virtualenv
 venv/
 ENV/
+.venv
 
 # Spyder project settings
 .spyderproject
+
+# Pycharm
+.idea
 
 # Rope project settings
 .ropeproject
