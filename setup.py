@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import pathlib
 
 from setuptools import setup, find_packages
 
@@ -13,10 +14,13 @@ test_requirements = [
     'pytest',
 ]
 
+readme = pathlib.Path('README.rst').read_text()
+
 setup(
     name='aioworkers-redis',
     version=version,
     description="Module for working with redis",
+    long_description=readme,
     author="Alexander Malev",
     author_email='yttrium@somedev.ru',
     url='https://github.com/aioworkers/aioworkers-redis',
@@ -32,6 +36,8 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
     ],
     test_suite='tests',
     tests_require=test_requirements,
