@@ -10,10 +10,13 @@ logger = logging.getLogger('aioworkers_redis')
 
 
 class Connector(AbstractNestedEntity, FormattedEntity):
-    async def init(self):
-        self._connector = None
-        self._prefix = None
+    _joiner = ':'
+    _prefix = None
+    _connector = None
+    _pool = None
+    _ready_pool = None
 
+    async def init(self):
         if isinstance(self.config.get('connection'), str):
             path = self.config.connection
             self._connector = self.context[path]
@@ -22,20 +25,32 @@ class Connector(AbstractNestedEntity, FormattedEntity):
 
         self._ready_pool = asyncio.Event(loop=self.loop)
         await super().init()
-        self._joiner = self.config.get('joiner', ':')
-        self._pool = None
         self._connect_lock = asyncio.Lock(loop=self.loop)
         groups = self.config.get('groups')
         self.context.on_start.append(self.start, groups)
         self.context.on_stop.append(self.stop, groups)
 
-    def factory(self, item):
-        inst = super().factory(item)
-        inst._connector = self._connector
-        inst._ready_pool = self._ready_pool
-        inst._joiner = self._joiner
-        inst._formatter = self._formatter
-        inst._prefix = self.raw_key(item)
+        for k, child in self._children.items():
+            if isinstance(child, Connector):
+                child._connector = self._connector
+                child._ready_pool = self._ready_pool
+                child.update_children()
+
+    def set_config(self, config):
+        self._joiner = config.get('joiner', ':')
+        super().set_config(config)
+
+    def factory(self, item, config=None):
+        if item not in self._children:
+            inst = super().factory(item, config)
+            if isinstance(inst, Connector):
+                inst._connector = self._connector
+                inst._ready_pool = self._ready_pool
+                inst._joiner = self._joiner
+                inst._formatter = self._formatter
+                inst._prefix = self.raw_key(item)
+        else:
+            inst = self._children[item]
         return inst
 
     def raw_key(self, key):
