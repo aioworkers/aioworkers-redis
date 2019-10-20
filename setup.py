@@ -6,7 +6,7 @@ from setuptools import find_packages, setup
 version = __import__('aioworkers_redis').__version__
 
 requirements = [
-    'aioworkers>=0.8.0',
+    'aioworkers>=0.13',
     'aioredis==1.1.0',
 ]
 
@@ -24,9 +24,10 @@ setup(
     author="Alexander Malev",
     author_email='yttrium@somedev.ru',
     url='https://github.com/aioworkers/aioworkers-redis',
-    packages=[i for i in find_packages() if i.startswith('aioworkers_redis')],
+    packages=find_packages(include='aioworkers_redis'),
     include_package_data=True,
     install_requires=requirements,
+    python_requires='>=3.5.3',
     license="Apache Software License 2.0",
     keywords='aioworkers redis',
     classifiers=[
