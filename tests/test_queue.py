@@ -4,7 +4,8 @@ import uuid
 import pytest
 from aioworkers.core.config import MergeDict
 from aioworkers.core.context import Context
-from aioworkers_redis.queue import Queue, ZQueue, TimestampZQueue
+
+from aioworkers_redis.queue import Queue, TimestampZQueue, ZQueue
 
 
 async def test_queue(loop):

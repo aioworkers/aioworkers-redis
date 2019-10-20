@@ -2,7 +2,8 @@ import uuid
 
 from aioworkers.core.config import MergeDict
 from aioworkers.core.context import Context
-from aioworkers_redis.storage import Storage, HashStorage
+
+from aioworkers_redis.storage import HashStorage, Storage
 
 
 async def test_storage(loop):

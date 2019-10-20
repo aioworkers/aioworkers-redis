@@ -6,13 +6,13 @@ from aioworkers_redis.base import Connector
 class Storage(Connector, AbstractListedStorage):
     async def list(self):
         async with self.acquire() as conn:
-            l = await conn.execute('keys', self.raw_key('*'))
-        return [self.clean_key(i) for i in l]
+            keys = await conn.execute('keys', self.raw_key('*'))
+        return [self.clean_key(i) for i in keys]
 
     async def length(self):
         async with self.acquire() as conn:
-            l = await conn.execute('keys', self.raw_key('*'))
-        return len(l)
+            keys = await conn.execute('keys', self.raw_key('*'))
+        return len(keys)
 
     async def set(self, key, value):
         raw_key = self.raw_key(key)
@@ -43,7 +43,9 @@ class HashStorage(FieldStorageMixin, Storage):
                 if value is None:
                     to_del.append(field)
                 else:
-                    return await conn.execute('hset', raw_key, field, self.encode(value))
+                    return await conn.execute(
+                        'hset', raw_key, field, self.encode(value),
+                    )
             elif value is None:
                 return await conn.execute('del', raw_key)
             else:

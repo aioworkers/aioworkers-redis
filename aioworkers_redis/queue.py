@@ -58,13 +58,8 @@ class Queue(Connector, AbstractQueue):
             return await conn.execute('del', self.key)
 
 
-@score_queue('time.time')
-class ZQueue(Queue):
-    script = """
-        local val = redis.call('zrange', KEYS[1], 0, 0, 'WITHSCORES')
-        if val[1] then redis.call('zrem', KEYS[1], val[1]) end
-        return val
-        """
+class BaseZQueue(Queue):
+    script = ''
 
     async def put(self, value):
         score, val = value
@@ -99,7 +94,16 @@ class ZQueue(Queue):
 
 
 @score_queue('time.time')
-class TimestampZQueue(ZQueue.super):
+class ZQueue(BaseZQueue):
+    script = """
+        local val = redis.call('zrange', KEYS[1], 0, 0, 'WITHSCORES')
+        if val[1] then redis.call('zrem', KEYS[1], val[1]) end
+        return val
+        """
+
+
+@score_queue('time.time')
+class TimestampZQueue(BaseZQueue):
     script = """
         local val = redis.call('ZRANGE', KEYS[1], 0, 0, 'WITHSCORES')
         if val[1] then

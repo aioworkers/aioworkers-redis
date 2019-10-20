@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import pathlib
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 version = __import__('aioworkers_redis').__version__
 

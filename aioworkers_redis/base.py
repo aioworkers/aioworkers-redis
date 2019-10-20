@@ -100,9 +100,13 @@ class Connector(AbstractNestedEntity, FormattedEntity):
             cfg = dict(self._connect_params)
             address = cfg.pop('host', 'localhost'), cfg.pop('port', 6379)
             try:
-                self._pool = await aioredis.create_pool(address, **cfg, loop=self.loop)
+                self._pool = await aioredis.create_pool(
+                    address, **cfg, loop=self.loop,
+                )
             except OSError as e:
-                logger.critical('An error occurred while connecting to the redis %s', e)
+                logger.critical(
+                    'An error occurred while connecting to the redis %s', e,
+                )
                 return
             self._ready_pool.set()
 
