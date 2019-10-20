@@ -7,7 +7,7 @@ version = __import__('aioworkers_redis').__version__
 
 requirements = [
     'aioworkers>=0.13',
-    'aioredis==1.1.0',
+    'aioredis==1.3.0',
 ]
 
 test_requirements = [
