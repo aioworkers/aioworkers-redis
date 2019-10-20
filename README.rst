@@ -3,6 +3,26 @@ aioworkers-redis
 
 Redis plugin for `aioworkers`.
 
+.. image:: https://travis-ci.org/aioworkers/aioworkers-redis.svg?branch=master
+  :target: https://travis-ci.org/aioworkers/aioworkers-redis
+
+.. image:: https://codecov.io/gh/aioworkers/aioworkers-redis/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/aioworkers/aioworkers-redis
+
+.. image:: https://img.shields.io/pypi/v/aioworkers-redis.svg
+  :target: https://pypi.python.org/pypi/aioworkers-redis
+
+.. image:: https://pyup.io/repos/github/aioworkers/aioworkers-redis/shield.svg
+  :target: https://pyup.io/repos/github/aioworkers/aioworkers-redis/
+  :alt: Updates
+
+.. image:: https://readthedocs.org/projects/aioworkers-redis/badge/?version=latest
+  :target: http://aioworkers-redis.readthedocs.io/en/latest/?badge=latest
+  :alt: Documentation Status
+
+.. image:: https://img.shields.io/pypi/pyversions/aioworkers-redis.svg
+  :target: https://pypi.python.org/pypi/aioworkers-redis
+
 
 Usage
 -----
