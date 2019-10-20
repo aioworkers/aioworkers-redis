@@ -17,6 +17,8 @@ class Connector(AbstractNestedEntity, FormattedEntity):
     _ready_pool = None
 
     async def init(self):
+        if self._connector is not None:
+            return
         if isinstance(self.config.get('connection'), str):
             path = self.config.connection
             self._connector = self.context[path]
@@ -24,17 +26,17 @@ class Connector(AbstractNestedEntity, FormattedEntity):
             self._connector = self
 
         self._ready_pool = asyncio.Event(loop=self.loop)
-        await super().init()
-        self._connect_lock = asyncio.Lock(loop=self.loop)
-        groups = self.config.get('groups')
-        self.context.on_start.append(self.start, groups)
-        self.context.on_stop.append(self.stop, groups)
 
         for k, child in self._children.items():
             if isinstance(child, Connector):
                 child._connector = self._connector
                 child._ready_pool = self._ready_pool
-                child.update_children()
+
+        await super().init()
+        self._connect_lock = asyncio.Lock(loop=self.loop)
+        groups = self.config.get('groups')
+        self.context.on_start.append(self.start, groups)
+        self.context.on_stop.append(self.stop, groups)
 
     def set_config(self, config):
         self._joiner = config.get('joiner', ':')
