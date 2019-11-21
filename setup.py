@@ -24,7 +24,9 @@ setup(
     author="Alexander Malev",
     author_email='yttrium@somedev.ru',
     url='https://github.com/aioworkers/aioworkers-redis',
-    packages=find_packages(include='aioworkers_redis'),
+    packages=find_packages(
+        include=['aioworkers_redis']
+    ),
     include_package_data=True,
     install_requires=requirements,
     python_requires='>=3.5.3',
