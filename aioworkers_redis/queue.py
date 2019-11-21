@@ -17,8 +17,8 @@ class Queue(Connector, AbstractQueue):
             self._key = self.raw_key(self.config.key)
         return self._key
 
-    def factory(self, item):
-        inst = super().factory(item)
+    def factory(self, item, config=None):
+        inst = super().factory(item, config=config)
         inst._prefix = self.raw_key(self.config.key)
         inst._key = inst.raw_key(item)
         inst._lock = asyncio.Lock(loop=self.loop)
