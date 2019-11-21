@@ -93,8 +93,8 @@ async def test_zqueue(loop, mocker):
         assert not await q.length()
 
         with pytest.raises(TypeError):
-            with mocker.patch('asyncio.sleep'):
-                await q.get()
+            mocker.patch('asyncio.sleep')
+            await q.get()
 
 
 async def test_ts_zqueue(loop, mocker):
