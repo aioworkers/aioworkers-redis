@@ -2,18 +2,21 @@ import time
 import uuid
 
 import pytest
-from aioworkers.core.config import MergeDict
 from aioworkers.core.context import Context
 
-from aioworkers_redis.queue import Queue, TimestampZQueue, ZQueue
+
+@pytest.fixture
+def config_yaml():
+    return """
+    q:
+        key: {uuid}
+    """.format(uuid=uuid.uuid4())
 
 
-async def test_queue(loop):
-    config = MergeDict(key=str(uuid.uuid4()))
-    context = Context({}, loop=loop)
-    q = Queue(config, context=context, loop=loop)
-    await q.init()
-    async with q:
+async def test_queue(config, loop):
+    config.update(q=dict(cls='aioworkers_redis.queue.Queue'))
+    async with Context(config, loop=loop) as ctx:
+        q = ctx.q
         await q.put(3)
         assert 1 == await q.length()
         assert [b'3'] == await q.list()
@@ -30,27 +33,20 @@ async def test_queue(loop):
             await q.get(timeout=1)
 
 
-async def test_nested_queue(loop):
-    config = MergeDict(key=str(uuid.uuid4()), format='json', name='q')
-    context = Context({}, loop=loop)
-    q = Queue(config, context=context, loop=loop)
-    await q.init()
-    async with q:
+async def test_nested_queue(config, loop):
+    config.update(q=dict(cls='aioworkers_redis.queue.Queue', format='json'))
+    async with Context(config, loop=loop) as ctx:
+        q = ctx.q
         q_child = q.child
         await q_child.put(1)
-        assert q_child._key == config.key + ':child'
+        assert q_child._key == config.q.key + ':child'
         assert 1 == await q_child.get()
 
 
-async def test_queue_json(loop):
-    config = MergeDict(
-        key=str(uuid.uuid4()),
-        format='json',
-    )
-    context = Context({}, loop=loop)
-    q = Queue(config, context=context, loop=loop)
-    await q.init()
-    async with q:
+async def test_queue_json(config, loop):
+    config.update(q=dict(cls='aioworkers_redis.queue.Queue', format='json'))
+    async with Context(config, loop=loop) as ctx:
+        q = ctx.q
         await q.put({'f': 3})
         assert 1 == await q.length()
         assert [{'f': 3}] == await q.list()
@@ -61,16 +57,14 @@ async def test_queue_json(loop):
         assert not await q.length()
 
 
-async def test_zqueue(loop, mocker):
-    config = MergeDict(
-        key=str(uuid.uuid4()),
-        format='str',
+async def test_zqueue(mocker, config, loop):
+    config.update(q=dict(
+        cls='aioworkers_redis.queue.ZQueue',
+        format='json',
         timeout=0,
-    )
-    context = Context({}, loop=loop)
-    q = ZQueue(config, context=context, loop=loop)
-    await q.init()
-    async with q:
+    ))
+    async with Context(config, loop=loop) as ctx:
+        q = ctx.q
         await q.put('a', 4)
         await q.put('c', 3)
         await q.put('b', 2)
@@ -97,17 +91,14 @@ async def test_zqueue(loop, mocker):
             await q.get()
 
 
-async def test_ts_zqueue(loop, mocker):
-    config = MergeDict(
-        key=str(uuid.uuid4()),
-        format='str',
+async def test_ts_zqueue(mocker, config, loop):
+    config.update(q=dict(
+        cls='aioworkers_redis.queue.TimestampZQueue',
+        format='json',
         timeout=10,
-    )
-    context = Context({}, loop=loop)
-    q = TimestampZQueue(config, context=context, loop=loop)
-    await q.init()
-
-    async with q:
+    ))
+    async with Context(config, loop=loop) as ctx:
+        q = ctx.q
         await q.put('c', time.time() + 4)
         await q.put('a', 4)
         assert 2 == await q.length()
