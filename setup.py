@@ -1,35 +1,47 @@
 #!/usr/bin/env python
-import pathlib
+import re
+from pathlib import Path
 
 from setuptools import find_packages, setup
 
-version = __import__('aioworkers_redis').__version__
+PACKAGE = 'aioworkers_redis'
+PACKAGE_DIR = Path(__file__).parent / PACKAGE
+
+
+def read(f):
+    path = Path(__file__).parent / f
+    if not path.exists():
+        return ''
+    return path.read_text(encoding='latin1').strip()
+
+
+def get_version():
+    text = read(PACKAGE_DIR / 'version.py')
+    if not text:
+        text = read(PACKAGE_DIR / '__init__.py')
+    try:
+        return re.findall(r"^__version__ = '([^']+)'$", text, re.M)[0]
+    except IndexError:
+        raise RuntimeError('Unable to determine version.')
+
 
 requirements = [
-    'aioworkers>=0.13',
-    'aioredis==1.3.0',
+    'aioworkers>=0.14.3',
+    'aioredis>=1.3.0',
 ]
-
-test_requirements = [
-    'pytest',
-]
-
-readme = pathlib.Path('README.rst').read_text()
 
 setup(
     name='aioworkers-redis',
-    version=version,
+    version=get_version(),
     description="Module for working with redis",
-    long_description=readme,
+    long_description=Path('README.rst').read_text(),
     author="Alexander Malev",
     author_email='yttrium@somedev.ru',
     url='https://github.com/aioworkers/aioworkers-redis',
-    packages=find_packages(
-        include=['aioworkers_redis']
-    ),
+    packages=find_packages(include=[PACKAGE]),
     include_package_data=True,
     install_requires=requirements,
-    python_requires='>=3.5.3',
+    python_requires='>=3.6',
     license="Apache Software License 2.0",
     keywords='aioworkers redis',
     classifiers=[
@@ -37,10 +49,7 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
-    test_suite='tests',
-    tests_require=test_requirements,
 )
