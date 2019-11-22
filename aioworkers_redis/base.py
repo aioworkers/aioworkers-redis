@@ -1,53 +1,58 @@
-import asyncio
-import logging
+from typing import Optional, Union
 
 import aioredis
-from aioworkers.core.base import AbstractNestedEntity
+from aioworkers.core.base import (
+    AbstractConnector, AbstractNestedEntity, LoggingEntity
+)
 from aioworkers.core.formatter import FormattedEntity
 
 
-logger = logging.getLogger('aioworkers_redis')
-
-
-class Connector(AbstractNestedEntity, FormattedEntity):
-    _joiner = ':'
-    _prefix = None
-    _connector = None
-    _pool = None
-    _ready_pool = None
-
-    async def init(self):
-        if self._connector is not None:
-            return
-        if isinstance(self.config.get('connection'), str):
-            path = self.config.connection
-            self._connector = self.context[path]
-        else:
-            self._connector = self
-
-        self._ready_pool = asyncio.Event(loop=self.loop)
-
-        for k, child in self._children.items():
-            if isinstance(child, Connector):
-                child._connector = self._connector
-                child._ready_pool = self._ready_pool
-
-        await super().init()
-        self._connect_lock = asyncio.Lock(loop=self.loop)
-        groups = self.config.get('groups')
-        self.context.on_start.append(self.start, groups)
-        self.context.on_stop.append(self.stop, groups)
+class Connector(
+    AbstractNestedEntity,
+    AbstractConnector,
+    FormattedEntity,
+    LoggingEntity,
+):
+    def __init__(self, *args, **kwargs):
+        self._joiner: str = ':'
+        self._prefix: str = ''
+        self._connector: Optional[Connector] = None
+        self._pool: Optional[aioredis.Redis] = None
+        super().__init__(*args, **kwargs)
 
     def set_config(self, config):
         self._joiner = config.get('joiner', ':')
-        super().set_config(config)
+        self._prefix = config.get('prefix', '')
+        cfg = config.new_parent(logger='aioworkers_redis')
+        super().set_config(cfg)
+
+    @property
+    def pool(self) -> aioredis.Redis:
+        connector = self._connector or self._get_connector()
+        assert connector._pool is not None, 'Pool not ready'
+        return connector._pool
+
+    def _get_connector(self) -> 'Connector':
+        cfg = self.config.get('connection')
+        if isinstance(cfg, str):
+            self.logger.debug('Connect to %s', cfg)
+            self._connector = self.context.get_object(cfg)
+            assert self._connector is not None, 'Not found reference %s' % cfg
+        else:
+            self._connector = self
+        return self._connector
+
+    async def init(self):
+        await super().init()
+        for k, child in self._children.items():
+            if isinstance(child, Connector):
+                child._connector = self._connector
 
     def factory(self, item, config=None):
         if item not in self._children:
             inst = super().factory(item, config)
             if isinstance(inst, Connector):
                 inst._connector = self._connector
-                inst._ready_pool = self._ready_pool
                 inst._joiner = self._joiner
                 inst._formatter = self._formatter
                 inst._prefix = self.raw_key(item)
@@ -55,20 +60,11 @@ class Connector(AbstractNestedEntity, FormattedEntity):
             inst = self._children[item]
         return inst
 
-    def raw_key(self, key):
-        if self._prefix is not None:
-            pass
-        elif isinstance(self.config.get('connection'), str):
-            path = self.config.get('connection')
-            self._prefix = self.context[path].raw_key(
-                self.config.get('prefix', ''))
-        else:
-            self._prefix = self.config.get('prefix', '')
-        k = self._prefix, key
-        k = [i for i in k if i] or ''
+    def raw_key(self, key: str) -> str:
+        k = [i for i in (self._prefix, key) if i]
         return self._joiner.join(k)
 
-    def clean_key(self, raw_key):
+    def clean_key(self, raw_key: Union[str, bytes]) -> str:
         result = raw_key[len(self._prefix) + len(self._joiner):]
         if isinstance(result, str):
             return result
@@ -77,18 +73,12 @@ class Connector(AbstractNestedEntity, FormattedEntity):
     def acquire(self):
         return AsyncConnectionContextManager(self._connector)
 
-    async def start(self):
-        if self._ready_pool.is_set():
+    async def connect(self):
+        connector = self._connector or self._get_connector()
+        if connector is not self:
             return
 
-        connect_params = None
-
-        if isinstance(self.config.get('connection'), str):
-            path = self.config.connection
-            self._connector = self.context[path]
-        else:
-            self._connector = self
-            connect_params = self.config.get('connection', {})
+        cfg = self.config.get('connection')
 
         c = self
         while True:
@@ -97,44 +87,23 @@ class Connector(AbstractNestedEntity, FormattedEntity):
             else:
                 if self.config.get('connect'):
                     self._connector = self
-                    connect_params = c.config.get('connection', {})
+                    cfg = c.config.get('connection')
                 break
+        self._pool = await self.pool_factory(cfg or {})
 
-        if connect_params is None:
-            return
+    async def pool_factory(self, cfg: dict) -> Optional[aioredis.Redis]:
+        address = cfg.pop('host', 'localhost'), cfg.pop('port', 6379)
+        self.logger.debug('Create pool with address %s', address)
+        return await aioredis.create_redis_pool(
+            address, **cfg, loop=self.loop,
+        )
 
-        self._connect_params = connect_params
-        await self.connect(force=True)
-
-    async def connect(self, force=False):
-        if self._connector is not self:
-            return
-        async with self._connect_lock:
-            if force:
-                self._ready_pool.clear()
-            elif self._ready_pool.is_set():
-                return
-            cfg = dict(self._connect_params)
-            address = cfg.pop('host', 'localhost'), cfg.pop('port', 6379)
-            try:
-                self._pool = await aioredis.create_pool(
-                    address, **cfg, loop=self.loop,
-                )
-            except OSError as e:
-                logger.critical(
-                    'An error occurred while connecting to the redis %s', e,
-                )
-                return
-            self._ready_pool.set()
-
-    async def stop(self):
-        if self._connector is not self:
-            return
-        elif not self._ready_pool.is_set():
-            return
-        self._pool.close()
-        await self._pool.wait_closed()
-        self._ready_pool.clear()
+    async def disconnect(self):
+        pool = self._pool
+        if pool is not None:
+            self.logger.debug('Close pool')
+            pool.close()
+            await pool.wait_closed()
 
     def decode(self, b):
         if b is not None:
@@ -145,35 +114,21 @@ class Connector(AbstractNestedEntity, FormattedEntity):
             return super().encode(b)
 
     async def __aenter__(self):
-        await self.start()
+        await self.connect()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.stop()
+        await self.disconnect()
 
 
 class AsyncConnectionContextManager:
-
-    __slots__ = ('_connector', '_conn')
+    __slots__ = ('_connector',)
 
     def __init__(self, connector: Connector):
-        self._connector = connector
-        self._conn = None
+        self._connector: Connector = connector
 
     async def __aenter__(self):
-        c = self._connector
-        while True:
-            await c._ready_pool.wait()
-            try:
-                self._conn = await c._pool.acquire()
-            except aioredis.PoolClosedError:
-                c._ready_pool.clear()
-                await c.connect()
-            else:
-                return self._conn
+        return self._connector.pool
 
     async def __aexit__(self, exc_type, exc_value, tb):
-        try:
-            self._connector._pool.release(self._conn)
-        finally:
-            self._conn = None
+        pass
