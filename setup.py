@@ -20,7 +20,7 @@ def get_version():
     if not text:
         text = read(PACKAGE_DIR / '__init__.py')
     try:
-        return re.findall(r"^__version__ = '([^']+)'$", text, re.M)[0]
+        return re.findall(r"\s*__version__ = '([^']+)'$", text, re.M)[0]
     except IndexError:
         raise RuntimeError('Unable to determine version.')
 
