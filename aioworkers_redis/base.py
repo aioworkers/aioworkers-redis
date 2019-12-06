@@ -89,7 +89,11 @@ class Connector(
                     self._connector = self
                     cfg = c.config.get('connection')
                 break
-        self._pool = await self.pool_factory(cfg or {})
+        if cfg:
+            cfg = dict(cfg)
+        else:
+            cfg = {}
+        self._pool = await self.pool_factory(cfg)
 
     async def pool_factory(self, cfg: dict) -> Optional[aioredis.Redis]:
         address = cfg.pop('host', 'localhost'), cfg.pop('port', 6379)
