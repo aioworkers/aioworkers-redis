@@ -13,6 +13,8 @@ class Connector(
     FormattedEntity,
     LoggingEntity,
 ):
+    skip_child = frozenset(['connection'])
+
     def __init__(self, *args, **kwargs):
         self._joiner: str = ':'
         self._prefix: str = ''
@@ -49,6 +51,8 @@ class Connector(
                 child._connector = self._connector
 
     def factory(self, item, config=None):
+        if item in self.skip_child:
+            return None
         if item not in self._children:
             inst = super().factory(item, config)
             if isinstance(inst, Connector):
