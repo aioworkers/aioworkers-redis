@@ -1,9 +1,19 @@
-from aioworkers.storage.base import AbstractListedStorage, FieldStorageMixin
+from aioworkers.storage.base import (
+    AbstractExpiryStorage, AbstractListedStorage, FieldStorageMixin
+)
 
 from aioworkers_redis.base import Connector
 
 
-class Storage(Connector, AbstractListedStorage):
+class Storage(Connector, AbstractListedStorage, AbstractExpiryStorage):
+    _expiry = None
+
+    def set_config(self, config):
+        super().set_config(config)
+        self._expiry = self.config.get_duration(
+            'expiry', default=None, null=True,
+        )
+
     async def list(self):
         async with self.acquire() as conn:
             keys = await conn.execute('keys', self.raw_key('*'))
@@ -22,6 +32,10 @@ class Storage(Connector, AbstractListedStorage):
         async with self.acquire() as conn:
             if is_null:
                 return await conn.execute('del', raw_key)
+            elif self._expiry:
+                return await conn.execute(
+                    'setex', raw_key, self._expiry, value,
+                )
             else:
                 return await conn.execute('set', raw_key, value)
 
@@ -31,6 +45,11 @@ class Storage(Connector, AbstractListedStorage):
             value = await conn.execute('get', raw_key)
         if value is not None:
             return self.decode(value)
+
+    async def expiry(self, key, expiry):
+        raw_key = self.raw_key(key)
+        async with self.acquire() as conn:
+            await conn.execute('expire', raw_key, expiry)
 
 
 class HashStorage(FieldStorageMixin, Storage):
@@ -60,6 +79,8 @@ class HashStorage(FieldStorageMixin, Storage):
                     await conn.execute('hmset', raw_key, *pairs)
             if to_del:
                 await conn.execute('hdel', raw_key, *to_del)
+            if self._expiry:
+                await conn.execute('expire', raw_key, self._expiry)
 
     async def get(self, key, *, field=None, fields=None):
         raw_key = self.raw_key(key)
