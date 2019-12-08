@@ -21,9 +21,9 @@ redis:
 queue:
   ping:
     cls: aioworkers_redis.queue.Queue
-    connection: redis
+    connection: .redis
     key: ping
   pong:
     cls: aioworkers_redis.queue.Queue
-    connection: redis
+    connection: .redis
     key: pong
