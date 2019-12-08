@@ -35,12 +35,12 @@ Add this to aioworkers config.yaml:
         cls: aioworkers_redis.base.Connector
         prefix: app
         connection:
-            host: 'localhost'
+            host: localhost
             port: 6379
             maxsize: 20
     queue:
         cls: aioworkers_redis.queue.Queue
-        connection: redis
+        connection: .redis
         format: json
         key: queue
 
