@@ -9,7 +9,6 @@ def config_yaml():
       prefix: a
       b:
         cls: aioworkers_redis.base.Connector
-        connection: connector
     """
 
 
