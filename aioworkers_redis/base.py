@@ -4,6 +4,7 @@ import aioredis
 from aioworkers.core.base import (
     AbstractConnector, AbstractNestedEntity, LoggingEntity
 )
+from aioworkers.core.config import ValueExtractor
 from aioworkers.core.formatter import FormattedEntity
 
 
@@ -13,8 +14,6 @@ class Connector(
     FormattedEntity,
     LoggingEntity,
 ):
-    skip_child = frozenset(['connection'])
-
     def __init__(self, *args, **kwargs):
         self._joiner: str = ':'
         self._prefix: str = ''
@@ -51,25 +50,31 @@ class Connector(
             self._connector = self
         return self._connector
 
-    async def init(self):
-        await super().init()
-        for k, child in self._children.items():
-            if isinstance(child, Connector):
-                child._connector = self._connector
-
-    def factory(self, item, config=None):
-        if item in self.skip_child:
-            return None
-        if item not in self._children:
-            inst = super().factory(item, config)
-            if isinstance(inst, Connector):
-                inst._connector = self._connector
-                inst._joiner = self._joiner
-                inst._formatter = self._formatter
-                inst._prefix = self.raw_key(item)
+    def get_child_config(
+        self, item: str, config: Optional[ValueExtractor] = None,
+    ) -> Optional[ValueExtractor]:
+        if config is None:
+            result = ValueExtractor(dict(
+                name=f'{self.config.name}.{item}',
+            ))
         else:
-            inst = self._children[item]
-        return inst
+            result = super().get_child_config(item, config)
+        if self._connector is None:
+            connection = self.config.get('connection')
+            if not isinstance(connection, str):
+                connection = f'.{self.config.name}'
+            result = result.new_parent(
+                connection=connection,
+            )
+        else:
+            result = result.new_child(
+                connection=f'.{self._connector.config.name}',
+            )
+        return result.new_parent(
+            prefix=self.raw_key(item),
+            joiner=self._joiner,
+            format=self.config.get('format'),
+        )
 
     def raw_key(self, key: str) -> str:
         k = [i for i in (self._prefix, key) if i]
@@ -82,7 +87,7 @@ class Connector(
         return result.decode()
 
     def acquire(self):
-        return AsyncConnectionContextManager(self._connector)
+        return AsyncConnectionContextManager(self)
 
     async def connect(self):
         connector = self._connector or self._get_connector()
