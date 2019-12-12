@@ -27,9 +27,10 @@ class Connector(
         cfg = config.new_parent(logger='aioworkers_redis')
         c = cfg.get('connection')
         if not isinstance(c, str):
-            pass
+            if cfg.get('dsn'):
+                cfg = cfg.new_child(connection=dict(dsn=cfg.get('dsn')))
         elif c.startswith('redis://'):
-            cfg = cfg.new_child(connection=dict(uri=c))
+            cfg = cfg.new_child(connection=dict(dsn=c))
         elif not c.startswith('.'):
             raise ValueError('Connector link must be startswith point .%s' % c)
         super().set_config(cfg)
@@ -112,8 +113,8 @@ class Connector(
         self._pool = await self.pool_factory(cfg)
 
     async def pool_factory(self, cfg: dict) -> Optional[aioredis.Redis]:
-        if cfg.get('uri'):
-            address = cfg.pop('uri')
+        if cfg.get('dsn'):
+            address = cfg.pop('dsn')
         elif cfg.get('address'):
             address = cfg.pop('address')
         else:

@@ -20,6 +20,16 @@ async def test_connect(context):
     assert context.connector.clean_key('a:3') == '3'
 
 
+async def test_dsn(config):
+    config.update({
+        'connector.dsn': 'redis://localhost',
+        'connector.name': 'connector',
+    })
+    cls = import_name(config.connector.cls)
+    async with cls(config.connector) as c:
+        assert c.connector
+
+
 async def test_uri(config):
     config.update({
         'connector.connection': 'redis://localhost',
