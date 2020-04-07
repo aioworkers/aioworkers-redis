@@ -148,13 +148,15 @@ class Connector(
 
 
 class AsyncConnectionContextManager:
-    __slots__ = ('_connector',)
+    __slots__ = ('_connector', '_connection')
 
     def __init__(self, connector: Connector):
         self._connector: Connector = connector
 
     async def __aenter__(self):
-        return self._connector.pool
+        self._connection = await self._connector.pool
+        self._connection.__enter__()
+        return self._connection
 
     async def __aexit__(self, exc_type, exc_value, tb):
-        pass
+        self._connection.__exit__(exc_type, exc_value, tb)
