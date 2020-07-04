@@ -24,6 +24,19 @@ Redis plugin for `aioworkers`.
   :target: https://pypi.python.org/pypi/aioworkers-redis
 
 
+Features
+--------
+
+* Works on aioredis
+* Queue based on RPUSH, BLPOP, LLEN, LRANGE
+* ZQueue based on ZADD, ZRANGE, ZCARD, ZRANGE, ZREM, EVAL
+* TimestampZQueue based ZQueue
+* Storage based on SET, GET
+* HashStorage based on HSET, HGET, HDEL, HMSET, HMGET, HGETALL
+* HyperLogLogStorage based on PFADD, PFMERGE, PFCOUNT
+
+
+
 Usage
 -----
 
