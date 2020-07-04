@@ -10,7 +10,6 @@ aioworkers = ">=0.14.3"
 [dev-packages]
 pytest-aioworkers = "*"
 pytest-cov = "*"
-pytest-mock = "*"
 pytest-sugar = "*"
 pyyaml = "*"
 isort = "*"

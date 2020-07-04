@@ -1,5 +1,6 @@
 import time
 import uuid
+from unittest import mock
 
 import pytest
 from aioworkers.core.context import Context
@@ -57,7 +58,7 @@ async def test_queue_json(config, loop):
         assert not await q.length()
 
 
-async def test_zqueue(mocker, config, loop):
+async def test_zqueue(config, loop):
     config.update(q=dict(
         cls='aioworkers_redis.queue.ZQueue',
         format='json',
@@ -86,12 +87,12 @@ async def test_zqueue(mocker, config, loop):
         await q.remove('3')
         assert not await q.length()
 
-        mocker.patch('asyncio.sleep')
-        with pytest.raises(TypeError):
-            await q.get()
+        with mock.patch('asyncio.sleep'):
+            with pytest.raises(TypeError):
+                await q.get()
 
 
-async def test_ts_zqueue(mocker, config, loop):
+async def test_ts_zqueue(config, loop):
     config.update(q=dict(
         cls='aioworkers_redis.queue.TimestampZQueue',
         format='json',
@@ -110,6 +111,6 @@ async def test_ts_zqueue(mocker, config, loop):
         async def breaker(*args, **kwargs):
             raise InterruptedError
 
-        mocker.patch('asyncio.sleep', breaker)
-        with pytest.raises(InterruptedError):
-            await q.get()
+        with mock.patch('asyncio.sleep', breaker):
+            with pytest.raises(InterruptedError):
+                await q.get()

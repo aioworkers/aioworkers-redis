@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 from aioworkers.utils import import_name
 
@@ -50,13 +52,13 @@ async def test_address(config):
         assert c.connector
 
 
-async def test_link(config, mocker):
+async def test_link(config):
     config.update({
         'connector.connection': '.connector',
         'connector.name': 'connector',
     })
     cls = import_name(config.connector.cls)
-    async with cls(config.connector, context=mocker.Mock()) as c:
+    async with cls(config.connector, context=mock.Mock()) as c:
         assert c.connector
 
 
