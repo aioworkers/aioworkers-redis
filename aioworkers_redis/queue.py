@@ -3,24 +3,16 @@ import time
 
 from aioworkers.queue.base import AbstractQueue, score_queue
 
-from aioworkers_redis.base import Connector
+from aioworkers_redis.base import KeyEntity
 
 
-class Queue(Connector, AbstractQueue):
+class Queue(KeyEntity, AbstractQueue):
     async def init(self):
         await super().init()
         self._lock = asyncio.Lock(loop=self.loop)
 
-    @property
-    def key(self):
-        if not hasattr(self, '_key'):
-            self._key = self.raw_key(self.config.key)
-        return self._key
-
     def factory(self, item, config=None):
         inst = super().factory(item, config=config)
-        inst._prefix = self.raw_key(self.config.key)
-        inst._key = inst.raw_key(item)
         inst._lock = asyncio.Lock(loop=self.loop)
         return inst
 

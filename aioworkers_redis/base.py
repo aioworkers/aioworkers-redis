@@ -162,3 +162,17 @@ class AsyncConnectionContextManager:
 
     async def __aexit__(self, exc_type, exc_value, tb):
         self._connection.__exit__(exc_type, exc_value, tb)
+
+
+class KeyEntity(Connector):
+    @property
+    def key(self):
+        if not hasattr(self, '_key'):
+            self._key = self.raw_key(self.config.key)
+        return self._key
+
+    def factory(self, item, config=None):
+        inst = super().factory(item, config=config)
+        inst._prefix = self.raw_key(self.config.key)
+        inst._key = inst.raw_key(item)
+        return inst
