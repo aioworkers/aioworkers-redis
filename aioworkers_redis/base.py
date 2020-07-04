@@ -71,8 +71,10 @@ class Connector(
             result = result.new_child(
                 connection=f'.{self._connector.config.name}',
             )
+        result = result.new_child(
+            prefix=self.raw_key(result.get('prefix', item)),
+        )
         return result.new_parent(
-            prefix=self.raw_key(item),
             joiner=self._joiner,
             format=self.config.get('format'),
         )
