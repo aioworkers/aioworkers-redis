@@ -22,6 +22,6 @@ jobs:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
       run: |
-        make aioworkers/version.py
+        echo "__version__ = '$(git describe --tags)'" > aioworkers_redis/version.py
         python setup.py sdist bdist_wheel
         twine upload dist/*
