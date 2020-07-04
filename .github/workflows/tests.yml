@@ -10,6 +10,7 @@ jobs:
       max-parallel: 3
       matrix:
         python-version: [3.6, 3.7, 3.8]
+        redis-version: [4, 5, 6]
 
     steps:
     - uses: actions/checkout@v1
@@ -29,6 +30,10 @@ jobs:
     - name: mypy
       run: |
         mypy aioworkers_redis tests
+    - name: Start Redis
+      uses: supercharge/redis-github-action@1.1.0
+      with:
+        redis-version: ${{ matrix.redis-version }}
     - name: Test with pytest
       run: |
         pytest --cov=aioworkers_redis
@@ -53,6 +58,10 @@ jobs:
         pip install -U pipenv codecov
         pip install -e .
         pipenv install --skip-lock --system
+    - name: Start Redis
+      uses: supercharge/redis-github-action@1.1.0
+      with:
+        redis-version: 4
     - name: Test with pytest
       run: |
         pytest
@@ -77,6 +86,10 @@ jobs:
         pip install -U pipenv codecov
         pip install -e .
         pipenv install -d --skip-lock --system
+    - name: Start Redis
+      uses: supercharge/redis-github-action@1.1.0
+      with:
+        redis-version: 4
     - name: Test with pytest
       run: |
         pytest
@@ -101,7 +114,10 @@ jobs:
           pip install -U pipenv codecov
           pip install -e .
           pipenv install --skip-lock --system
-        continue-on-error: true
+      - name: Start Redis
+        uses: supercharge/redis-github-action@1.1.0
+        with:
+          redis-version: 4
       - name: Test with pytest
         run: |
           pytest
