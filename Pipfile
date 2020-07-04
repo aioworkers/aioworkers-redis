@@ -13,6 +13,9 @@ pytest-cov = "*"
 pytest-mock = "*"
 pytest-sugar = "*"
 pyyaml = "*"
+isort = "*"
+flake8 = "*"
+mypy = "*"
 
 [requires]
 python_version = "3.6"
