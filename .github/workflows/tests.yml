@@ -101,7 +101,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -U pip setuptools
-        pip install -U pytest-aioworkers pyyaml
+        pip install -U pytest-aioworkers pytest-mock pyyaml
         pip install -e .
     - name: Start Redis
       uses: supercharge/redis-github-action@1.1.0
