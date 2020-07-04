@@ -20,7 +20,7 @@ jobs:
         pipenv install -d --skip-lock --system
     - name: isort
       run: |
-        isort -rc -c aioworkers_redis tests
+        isort -c aioworkers_redis tests
     - name: flake8
       run: |
         flake8 aioworkers_redis tests
@@ -34,7 +34,7 @@ jobs:
     strategy:
       max-parallel: 3
       matrix:
-        python-version: [3.6, 3.7, 3.8]
+        python-version: [3.6, 3.7]
 
     steps:
     - uses: actions/checkout@v1
@@ -101,9 +101,8 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -U pip setuptools
-        pip install -U pipenv
+        pip install -U pytest-aioworkers
         pip install -e .
-        pipenv install --skip-lock --system
     - name: Start Redis
       uses: supercharge/redis-github-action@1.1.0
       with:

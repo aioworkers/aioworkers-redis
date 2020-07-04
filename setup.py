@@ -4,6 +4,7 @@ from pathlib import Path
 
 from setuptools import find_packages, setup
 
+
 PACKAGE = 'aioworkers_redis'
 PACKAGE_DIR = Path(__file__).parent / PACKAGE
 
