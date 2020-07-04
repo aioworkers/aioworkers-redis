@@ -27,14 +27,40 @@ Redis plugin for `aioworkers`.
 Features
 --------
 
-* Works on aioredis
-* Queue based on RPUSH, BLPOP, LLEN, LRANGE
-* ZQueue based on ZADD, ZRANGE, ZCARD, ZRANGE, ZREM, EVAL
-* TimestampZQueue based ZQueue
-* Storage based on SET, GET
-* HashStorage based on HSET, HGET, HDEL, HMSET, HMGET, HGETALL
-* HyperLogLogStorage based on PFADD, PFMERGE, PFCOUNT
+* Works on `aioredis <https://pypi.org/project/aioredis/>`_
 
+* Queue based on
+  `RPUSH <https://redis.io/commands/rpush>`_,
+  `BLPOP <https://redis.io/commands/blpop>`_,
+  `LLEN <https://redis.io/commands/llen>`_,
+  `LRANGE <https://redis.io/commands/lrange>`_
+
+* ZQueue based on
+  `ZADD <https://redis.io/commands/zadd>`_,
+  `ZRANGE <https://redis.io/commands/zrange>`_,
+  `ZCARD <https://redis.io/commands/zcard>`_,
+  `ZRANGE <https://redis.io/commands/zrange>`_,
+  `ZREM <https://redis.io/commands/zrem>`_,
+  `EVAL <https://redis.io/commands/eval>`_
+
+* TimestampZQueue based ZQueue
+
+* Storage based on
+  `SET <https://redis.io/commands/set>`_,
+  `GET <https://redis.io/commands/get>`_
+
+* HashStorage based on
+  `HSET <https://redis.io/commands/hset>`_,
+  `HGET <https://redis.io/commands/hget>`_,
+  `HDEL <https://redis.io/commands/hdel>`_,
+  `HMSET <https://redis.io/commands/hmset>`_,
+  `HMGET <https://redis.io/commands/hmget>`_,
+  `HGETALL <https://redis.io/commands/hgetall>`_
+
+* HyperLogLogStorage based on
+  `PFADD <https://redis.io/commands/pfadd>`_,
+  `PFMERGE <https://redis.io/commands/pfmerge>`_,
+  `PFCOUNT <https://redis.io/commands/pfcount>`_
 
 
 Usage
