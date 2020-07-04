@@ -1,5 +1,7 @@
 from aioworkers.storage.base import (
-    AbstractExpiryStorage, AbstractListedStorage, FieldStorageMixin
+    AbstractExpiryStorage,
+    AbstractListedStorage,
+    FieldStorageMixin,
 )
 
 from aioworkers_redis.base import Connector

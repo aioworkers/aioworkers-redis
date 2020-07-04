@@ -2,7 +2,9 @@ from typing import Optional, Union
 
 import aioredis
 from aioworkers.core.base import (
-    AbstractConnector, AbstractNestedEntity, LoggingEntity
+    AbstractConnector,
+    AbstractNestedEntity,
+    LoggingEntity,
 )
 from aioworkers.core.config import ValueExtractor
 from aioworkers.core.formatter import FormattedEntity
