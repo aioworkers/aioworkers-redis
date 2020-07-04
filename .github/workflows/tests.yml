@@ -3,14 +3,38 @@ name: Tests
 on: [push]
 
 jobs:
-  tests-on-ubuntu:
+  isort-mypy-flake8:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v1.1.1
+      with:
+        python-version: 3.6
+    - name: Install dependencies
+      run: |
+        pip install -U pip setuptools
+        pip install -U pipenv
+        pipenv install -d --skip-lock --system
+    - name: isort
+      run: |
+        isort -rc -c aioworkers_redis tests
+    - name: flake8
+      run: |
+        flake8 aioworkers_redis tests
+    - name: mypy
+      run: |
+        mypy aioworkers_redis tests
+
+  tests-on-python:
 
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 3
       matrix:
         python-version: [3.6, 3.7, 3.8]
-        redis-version: [4, 5, 6]
 
     steps:
     - uses: actions/checkout@v1
@@ -24,12 +48,34 @@ jobs:
         pip install -U pipenv codecov
         pip install -e .
         pipenv install -d --skip-lock --system
-    - name: flake8
+    - name: Start Redis
+      uses: supercharge/redis-github-action@1.1.0
+      with:
+        redis-version: 4
+    - name: Test with pytest
       run: |
-        flake8 aioworkers_redis tests
-    - name: mypy
+        pytest --cov=aioworkers_redis
+
+  tests-on-redis:
+
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 3
+      matrix:
+        redis-version: [4, 5, 6]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v1.1.1
+      with:
+        python-version: 3.6
+    - name: Install dependencies
       run: |
-        mypy aioworkers_redis tests
+        pip install -U pip setuptools
+        pip install -U pipenv
+        pip install -e .
+        pipenv install -d --skip-lock --system
     - name: Start Redis
       uses: supercharge/redis-github-action@1.1.0
       with:
@@ -55,7 +101,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -U pip setuptools
-        pip install -U pipenv codecov
+        pip install -U pipenv
         pip install -e .
         pipenv install --skip-lock --system
     - name: Start Redis
@@ -65,59 +111,3 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
-
-  tests-on-macos:
-
-    runs-on: macOS-latest
-    strategy:
-      max-parallel: 1
-      matrix:
-        python-version: [3.6]
-
-    steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1.1.1
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        pip install -U pip setuptools
-        pip install -U pipenv codecov
-        pip install -e .
-        pipenv install -d --skip-lock --system
-    - name: Start Redis
-      uses: supercharge/redis-github-action@1.1.0
-      with:
-        redis-version: 4
-    - name: Test with pytest
-      run: |
-        pytest
-
-  tests-on-windows:
-
-    runs-on: windows-latest
-    strategy:
-      max-parallel: 1
-      matrix:
-        python-version: [3.6]
-
-    steps:
-      - uses: actions/checkout@v1
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1.1.1
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          pip install -U pip setuptools
-          pip install -U pipenv codecov
-          pip install -e .
-          pipenv install --skip-lock --system
-      - name: Start Redis
-        uses: supercharge/redis-github-action@1.1.0
-        with:
-          redis-version: 4
-      - name: Test with pytest
-        run: |
-          pytest
