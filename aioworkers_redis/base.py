@@ -116,7 +116,7 @@ class Connector(
             cfg = {}
         self._pool = await self.pool_factory(cfg)
 
-    async def pool_factory(self, cfg: dict) -> Optional[aioredis.Redis]:
+    async def pool_factory(self, cfg: dict) -> aioredis.Redis:
         if cfg.get('dsn'):
             address = cfg.pop('dsn')
         elif cfg.get('address'):
