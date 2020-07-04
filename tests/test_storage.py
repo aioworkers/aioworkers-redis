@@ -11,6 +11,9 @@ def config_yaml():
         cls: aioworkers_redis.storage.Storage
         prefix: {uuid}
         format: json
+    hyperloglog:
+        cls: aioworkers_redis.storage.HyperLogLogStorage
+        key: hll
     """.format(uuid=uuid.uuid4())
 
 
@@ -63,3 +66,13 @@ async def test_field_storage(loop, config):
         await storage.set(key, {'z': 1, 'y': 6}, fields=['z'])
         assert {'h': 6, 'z': 1} == await storage.get(key)
         await storage.set(key, None)
+
+
+async def test_hyperloglog(context):
+    hll = context.hyperloglog
+    await hll.set('a', True)
+    assert True is await hll.get('a')
+    assert False is await hll.get('b')
+    assert False is await hll.get('b')
+    assert True is await hll.get('a')
+    assert 1 == await hll.length()

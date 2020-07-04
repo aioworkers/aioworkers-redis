@@ -1,10 +1,11 @@
 from aioworkers.storage.base import (
+    AbstractBaseStorage,
     AbstractExpiryStorage,
     AbstractListedStorage,
     FieldStorageMixin,
 )
 
-from aioworkers_redis.base import Connector
+from aioworkers_redis.base import Connector, KeyEntity
 
 
 class Storage(Connector, AbstractListedStorage, AbstractExpiryStorage):
@@ -101,3 +102,23 @@ class HashStorage(FieldStorageMixin, Storage):
                 for f, v in zip(a, a):
                     m[f.decode()] = self.decode(v)
             return m
+
+
+class HyperLogLogStorage(KeyEntity, AbstractBaseStorage):
+    async def set(self, key, value=True):
+        assert value is True
+        async with self.acquire() as conn:
+            await conn.execute('pfadd', self.key, key)
+
+    async def get(self, key):
+        tmp_key = self.raw_key('tmp:hhl:' + key)
+        async with self.acquire() as conn:
+            await conn.execute('pfmerge', tmp_key, self.key)
+            result = await conn.execute('pfadd', tmp_key, key)
+            await conn.execute('del', tmp_key)
+        return result == 0
+
+    async def length(self):
+        async with self.acquire() as conn:
+            c = await conn.execute('pfcount', self.key)
+        return c
