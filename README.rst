@@ -3,8 +3,8 @@ aioworkers-redis
 
 Redis plugin for `aioworkers`.
 
-.. image:: https://travis-ci.org/aioworkers/aioworkers-redis.svg?branch=master
-  :target: https://travis-ci.org/aioworkers/aioworkers-redis
+.. image:: https://github.com/aioworkers/aioworkers-redis/workflows/Tests/badge.svg
+  :target: https://github.com/aioworkers/aioworkers-redis/actions?query=workflow%3ATests
 
 .. image:: https://codecov.io/gh/aioworkers/aioworkers-redis/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/aioworkers/aioworkers-redis
