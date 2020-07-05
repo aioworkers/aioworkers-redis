@@ -39,7 +39,6 @@ Features
   `ZADD <https://redis.io/commands/zadd>`_,
   `ZRANGE <https://redis.io/commands/zrange>`_,
   `ZCARD <https://redis.io/commands/zcard>`_,
-  `ZRANGE <https://redis.io/commands/zrange>`_,
   `ZREM <https://redis.io/commands/zrem>`_,
   `EVAL <https://redis.io/commands/eval>`_
 
