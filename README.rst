@@ -10,11 +10,7 @@ Redis plugin for `aioworkers`.
   :target: https://codecov.io/gh/aioworkers/aioworkers-redis
 
 .. image:: https://img.shields.io/pypi/v/aioworkers-redis.svg
-  :target: https://pypi.python.org/pypi/aioworkers-redis
-
-.. image:: https://pyup.io/repos/github/aioworkers/aioworkers-redis/shield.svg
-  :target: https://pyup.io/repos/github/aioworkers/aioworkers-redis/
-  :alt: Updates
+  :target: https://pypi.org/project/aioworkers-redis
 
 .. image:: https://readthedocs.org/projects/aioworkers-redis/badge/?version=latest
   :target: http://aioworkers-redis.readthedocs.io/en/latest/?badge=latest
