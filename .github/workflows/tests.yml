@@ -111,7 +111,7 @@ jobs:
       run: |
         pytest --cov=aioworkers_redis --cov-report=xml
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2.0.2
+      uses: codecov/codecov-action@v3.0.0
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage.xml
