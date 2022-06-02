@@ -4,8 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-aioredis = ">=1.3"
-aioworkers = ">=0.14.3"
+redis = ">=4.3"
+aioworkers = ">=0.20"
 
 [dev-packages]
 pytest-aioworkers = "*"

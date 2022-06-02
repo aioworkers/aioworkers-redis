@@ -27,8 +27,8 @@ def get_version():
 
 
 requirements = [
-    'aioworkers>=0.14.3',
-    'aioredis>=1.3.0',
+    'aioworkers>=0.20',
+    'redis>=4.3',
 ]
 
 setup(
