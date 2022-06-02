@@ -86,8 +86,7 @@ async def test_zqueue(config, loop):
         assert 1 == await q.length()
         await q.remove('3')
         assert not await q.length()
-
-        with mock.patch('asyncio.sleep'):
+        with mock.patch('asyncio.sleep', object()):
             with pytest.raises(TypeError):
                 await q.get()
 

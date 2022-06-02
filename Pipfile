@@ -15,6 +15,7 @@ pyyaml = "*"
 isort = "*"
 flake8 = "*"
 mypy = "*"
+types-redis = "*"
 
 [requires]
 python_version = "3.6"
