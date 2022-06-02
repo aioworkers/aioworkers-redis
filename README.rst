@@ -23,7 +23,7 @@ Redis plugin for `aioworkers`.
 Features
 --------
 
-* Works on `aioredis <https://pypi.org/project/aioredis/>`_
+* Works on `redis-py <https://pypi.org/project/redis/>`_
 
 * Queue based on
   `RPUSH <https://redis.io/commands/rpush>`_,
@@ -71,7 +71,7 @@ Add this to aioworkers config.yaml:
         connection:
             host: localhost
             port: 6379
-            maxsize: 20
+            max_connections: 20
     queue:
         cls: aioworkers_redis.queue.Queue
         connection: .redis
