@@ -18,11 +18,11 @@ class Storage(Connector, AbstractListedStorage, AbstractExpiryStorage):
         )
 
     async def list(self):
-        keys = await self.client.keys(self.raw_key('*'))
+        keys = await self.pool.keys(self.raw_key('*'))
         return [self.clean_key(i) for i in keys]
 
     async def length(self):
-        keys = await self.client.keys(self.raw_key('*'))
+        keys = await self.pool.keys(self.raw_key('*'))
         return len(keys)
 
     async def set(self, key, value):
@@ -31,21 +31,21 @@ class Storage(Connector, AbstractListedStorage, AbstractExpiryStorage):
         if not is_null:
             value = self.encode(value)
         if is_null:
-            return await self.client.delete(raw_key)
+            return await self.pool.delete(raw_key)
         elif self._expiry:
-            return await self.client.setex(raw_key, self._expiry, value)
+            return await self.pool.setex(raw_key, self._expiry, value)
         else:
-            return await self.client.set(raw_key, value)
+            return await self.pool.set(raw_key, value)
 
     async def get(self, key):
         raw_key = self.raw_key(key)
-        value = await self.client.get(raw_key)
+        value = await self.pool.get(raw_key)
         if value is not None:
             return self.decode(value)
 
     async def expiry(self, key, expiry):
         raw_key = self.raw_key(key)
-        await self.client.expire(raw_key, expiry)
+        await self.pool.expire(raw_key, expiry)
 
 
 class HashStorage(FieldStorageMixin, Storage):
@@ -57,9 +57,9 @@ class HashStorage(FieldStorageMixin, Storage):
             if value is None:
                 to_del.append(field)
             else:
-                return await self.client.hset(raw_key, field, self.encode(value))
+                return await self.pool.hset(raw_key, field, self.encode(value))
         elif value is None:
-            return await self.client.delete(raw_key)
+            return await self.pool.delete(raw_key)
         else:
             pairs = {}
             for f in fields or value:
@@ -69,23 +69,23 @@ class HashStorage(FieldStorageMixin, Storage):
                 else:
                     pairs[f] = self.encode(v)
             if pairs:
-                await self.client.hset(raw_key, mapping=pairs)
+                await self.pool.hset(raw_key, mapping=pairs)
         if to_del:
-            await self.client.hdel(raw_key, *to_del)
+            await self.pool.hdel(raw_key, *to_del)
         if self._expiry:
-            await self.client.expire(raw_key, self._expiry)
+            await self.pool.expire(raw_key, self._expiry)
 
     async def get(self, key, *, field=None, fields=None):
         raw_key = self.raw_key(key)
         if field:
-            return self.decode(await self.client.hget(raw_key, field))
+            return self.decode(await self.pool.hget(raw_key, field))
         elif fields:
-            v = await self.client.hmget(raw_key, *fields)
+            v = await self.pool.hmget(raw_key, *fields)
             m = self.model()
             for f, v in zip(fields, v):
                 m[f] = self.decode(v)
         else:
-            a = await self.client.hgetall(raw_key)
+            a = await self.pool.hgetall(raw_key)
             m = self.model()
             for f, v in a.items():
                 m[f.decode()] = self.decode(v)
@@ -95,15 +95,15 @@ class HashStorage(FieldStorageMixin, Storage):
 class HyperLogLogStorage(KeyEntity, AbstractBaseStorage):
     async def set(self, key, value=True):
         assert value is True
-        await self.client.pfadd(self.key, key)
+        await self.pool.pfadd(self.key, key)
 
     async def get(self, key):
         tmp_key = self.raw_key('tmp:hhl:' + key)
-        await self.client.pfmerge(tmp_key, self.key)
-        result = await self.client.pfadd(tmp_key, key)
-        await self.client.delete(tmp_key)
+        await self.pool.pfmerge(tmp_key, self.key)
+        result = await self.pool.pfadd(tmp_key, key)
+        await self.pool.delete(tmp_key)
         return result == 0
 
     async def length(self):
-        c = await self.client.pfcount(self.key)
+        c = await self.pool.pfcount(self.key)
         return c

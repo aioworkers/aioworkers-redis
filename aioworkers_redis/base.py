@@ -42,7 +42,7 @@ class Connector(
         super().set_config(cfg)
 
     @property
-    def client(self) -> Redis:
+    def pool(self) -> Redis:
         connector = self._connector or self._get_connector()
         assert connector._client is not None, 'Client is not ready'
         return connector._client
