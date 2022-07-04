@@ -126,6 +126,8 @@ class Connector(
             host = cfg.pop('host', DEFAULT_HOST)
             port = cfg.pop('port', DEFAULT_PORT)
             address = 'redis://{}:{}'.format(host, port)
+        if 'maxsize' in cfg:
+            cfg['max_connections'] = cfg.pop('maxsize')
         self.logger.debug('Create client with address %s', address)
         return Redis.from_url(address, **cfg)
 

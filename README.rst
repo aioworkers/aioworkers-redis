@@ -71,7 +71,7 @@ Add this to aioworkers config.yaml:
         connection:
             host: localhost
             port: 6379
-            max_connections: 20
+            maxsize: 20
     queue:
         cls: aioworkers_redis.queue.Queue
         connection: .redis
