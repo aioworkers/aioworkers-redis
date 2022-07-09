@@ -9,45 +9,37 @@ from aioworkers_redis.base import KeyEntity
 class Queue(KeyEntity, AbstractQueue):
     async def init(self):
         await super().init()
-        self._lock = asyncio.Lock(loop=self.loop)
+        self._lock = asyncio.Lock()
 
     def factory(self, item, config=None):
         inst = super().factory(item, config=config)
-        inst._lock = asyncio.Lock(loop=self.loop)
+        inst._lock = asyncio.Lock()
         return inst
 
     async def put(self, value):
         value = self.encode(value)
-        async with self.acquire() as conn:
-            return await conn.execute('rpush', self.key, value)
+        return await self.pool.rpush(self.key, value)
 
     async def get(self, *, timeout=0):
         async with self._lock:
-            async with self.acquire() as conn:
-                result = await conn.execute('blpop', self.key, timeout)
+            result = await self.pool.blpop(self.key, timeout)
         if timeout and result is None:
             raise TimeoutError
         value = self.decode(result[-1])
         return value
 
     async def length(self):
-        async with self.acquire() as conn:
-            return await conn.execute('llen', self.key)
+        return await self.pool.llen(self.key)
 
     async def list(self):
-        async with self.acquire() as conn:
-            return [
-                self.decode(i)
-                for i in await conn.execute('lrange', self.key, 0, -1)]
+        return [self.decode(i) for i in await self.pool.lrange(self.key, 0, -1)]
 
     async def remove(self, value):
         value = self.encode(value)
-        async with self.acquire() as conn:
-            await conn.execute('lrem', self.key, 0, value)
+        await self.pool.lrem(self.key, 0, value)
 
     async def clear(self):
-        async with self.acquire() as conn:
-            return await conn.execute('del', self.key)
+        return await self.pool.delete(self.key)
 
 
 class BaseZQueue(Queue):
@@ -56,33 +48,27 @@ class BaseZQueue(Queue):
     async def put(self, value):
         score, val = value
         val = self.encode(val)
-        async with self.acquire() as conn:
-            return await conn.execute('zadd', self.key, score, val)
+        return await self.pool.zadd(self.key, {val: score})
 
     async def get(self):
         async with self._lock:
             while True:
-                async with self.acquire() as conn:
-                    lv = await conn.execute('eval', self.script, 1, self.key)
+                lv = await self.pool.eval(self.script, 1, self.key)
                 if lv:
                     break
-                await asyncio.sleep(self.config.timeout, loop=self.loop)
+                await asyncio.sleep(self.config.timeout)
         value, score = lv
         return float(score), self.decode(value)
 
     async def length(self):
-        async with self.acquire() as conn:
-            return await conn.execute('zcard', self.key)
+        return await self.pool.zcard(self.key)
 
     async def list(self):
-        async with self.acquire() as conn:
-            return [self.decode(i)
-                    for i in await conn.execute('zrange', self.key, 0, -1)]
+        return [self.decode(i) for i in await self.pool.zrange(self.key, 0, -1)]
 
     async def remove(self, value):
         value = self.encode(value)
-        async with self.acquire() as conn:
-            await conn.execute('zrem', self.key, value)
+        await self.pool.zrem(self.key, value)
 
 
 @score_queue('time.time')
@@ -111,11 +97,9 @@ class TimestampZQueue(BaseZQueue):
     async def get(self):
         async with self._lock:
             while True:
-                async with self.acquire() as conn:
-                    lv = await conn.execute(
-                        'eval', self.script, 1, self.key, time.time())
+                lv = await self.pool.eval(self.script, 1, self.key, time.time())
                 if lv:
                     break
-                await asyncio.sleep(self.config.timeout, loop=self.loop)
+                await asyncio.sleep(self.config.timeout)
         value, score = lv
         return float(score), self.decode(value)

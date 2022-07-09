@@ -23,7 +23,7 @@ Redis plugin for `aioworkers`.
 Features
 --------
 
-* Works on `aioredis <https://pypi.org/project/aioredis/>`_
+* Works on `redis-py <https://pypi.org/project/redis/>`_
 
 * Queue based on
   `RPUSH <https://redis.io/commands/rpush>`_,

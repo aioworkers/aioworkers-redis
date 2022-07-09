@@ -1,6 +1,5 @@
 from typing import Optional, Union
 
-import aioredis
 from aioworkers.core.base import (
     AbstractConnector,
     AbstractNestedEntity,
@@ -8,6 +7,11 @@ from aioworkers.core.base import (
 )
 from aioworkers.core.config import ValueExtractor
 from aioworkers.core.formatter import FormattedEntity
+from redis.asyncio import Redis
+
+
+DEFAULT_HOST = 'localhost'
+DEFAULT_PORT = 6379
 
 
 class Connector(
@@ -20,7 +24,7 @@ class Connector(
         self._joiner: str = ':'
         self._prefix: str = ''
         self._connector: Optional[Connector] = None
-        self._pool: Optional[aioredis.Redis] = None
+        self._client: Optional[Redis] = None
         super().__init__(*args, **kwargs)
 
     def set_config(self, config):
@@ -38,10 +42,10 @@ class Connector(
         super().set_config(cfg)
 
     @property
-    def pool(self) -> aioredis.Redis:
+    def pool(self) -> Redis:
         connector = self._connector or self._get_connector()
-        assert connector._pool is not None, 'Pool not ready'
-        return connector._pool
+        assert connector._client is not None, 'Client is not ready'
+        return connector._client
 
     def _get_connector(self) -> 'Connector':
         cfg = self.config.get('connection')
@@ -91,9 +95,6 @@ class Connector(
             return result
         return result.decode()
 
-    def acquire(self):
-        return AsyncConnectionContextManager(self)
-
     async def connect(self):
         connector = self._connector or self._get_connector()
         if connector is not self:
@@ -114,26 +115,27 @@ class Connector(
             cfg = dict(cfg)
         else:
             cfg = {}
-        self._pool = await self.pool_factory(cfg)
+        self._client = await self.client_factory(cfg)
 
-    async def pool_factory(self, cfg: dict) -> aioredis.Redis:
+    async def client_factory(self, cfg: dict) -> Redis:
         if cfg.get('dsn'):
             address = cfg.pop('dsn')
         elif cfg.get('address'):
             address = cfg.pop('address')
         else:
-            address = cfg.pop('host', 'localhost'), cfg.pop('port', 6379)
-        self.logger.debug('Create pool with address %s', address)
-        return await aioredis.create_redis_pool(
-            address, **cfg, loop=self.loop,
-        )
+            host = cfg.pop('host', DEFAULT_HOST)
+            port = cfg.pop('port', DEFAULT_PORT)
+            address = 'redis://{}:{}'.format(host, port)
+        if 'maxsize' in cfg:
+            cfg['max_connections'] = cfg.pop('maxsize')
+        self.logger.debug('Create client with address %s', address)
+        return Redis.from_url(address, **cfg)
 
     async def disconnect(self):
-        pool = self._pool
-        if pool is not None:
-            self.logger.debug('Close pool')
-            pool.close()
-            await pool.wait_closed()
+        client = self._client
+        if client is not None:
+            self.logger.debug('Close connection')
+            await client.close()
 
     def decode(self, b):
         if b is not None:
@@ -149,21 +151,6 @@ class Connector(
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.disconnect()
-
-
-class AsyncConnectionContextManager:
-    __slots__ = ('_connector', '_connection')
-
-    def __init__(self, connector: Connector):
-        self._connector: Connector = connector
-
-    async def __aenter__(self):
-        self._connection = await self._connector.pool
-        self._connection.__enter__()
-        return self._connection
-
-    async def __aexit__(self, exc_type, exc_value, tb):
-        self._connection.__exit__(exc_type, exc_value, tb)
 
 
 class KeyEntity(Connector):
