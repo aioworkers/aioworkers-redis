@@ -1,10 +1,6 @@
 from typing import Optional, Union
 
-from aioworkers.core.base import (
-    AbstractConnector,
-    AbstractNestedEntity,
-    LoggingEntity,
-)
+from aioworkers.core.base import AbstractConnector, AbstractNestedEntity, LoggingEntity
 from aioworkers.core.config import ValueExtractor
 from aioworkers.core.formatter import FormattedEntity
 from redis.asyncio import Redis
