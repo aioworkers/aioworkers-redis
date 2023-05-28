@@ -1,118 +1,89 @@
 name: Tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - 'master'
+    tags: [ '*' ]
+  pull_request:
+    branches:
+      - 'master'
 
 jobs:
-  isort-mypy-flake8:
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3.5.2
-    - name: Set up Python 3.6
-      uses: actions/setup-python@v4.6.1
-      with:
-        python-version: 3.6
-    - name: Install dependencies
-      run: |
-        pip install -U pip setuptools
-        pip install -U pipenv
-        pipenv install -d --skip-lock --system
-    - name: isort
-      run: |
-        isort -c aioworkers_redis tests
-    - name: flake8
-      run: |
-        flake8 aioworkers_redis tests
-    - name: mypy
-      run: |
-        mypy aioworkers_redis tests
-
-  tests-on-python:
-
-    runs-on: ubuntu-latest
+  tests:
     strategy:
-      max-parallel: 3
+      max-parallel: 7
       matrix:
-        python-version: ['3.6', '3.7', '3.8', '3.9', '3.10']
-    steps:
-    - uses: actions/checkout@v3.5.2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4.6.1
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        pip install -U pip setuptools
-        pip install -U pipenv codecov
-        pip install -e .
-        pipenv install -d --skip-lock --system
-    - name: Start Redis
-      uses: supercharge/redis-github-action@1.5.0
-      with:
-        redis-version: 4
-    - name: Test with pytest
-      run: |
-        pytest
+        os:
+          - ubuntu-latest
+        redis-version:
+          - '5'
+          - '6'
+          - '7'
+        python-version:
+          - '3.7'
+          - '3.9'
+          - '3.10'
+          - '3.11'
+          - pypy-3.8
+          - pypy-3.9
+        include:
+          - os: ubuntu-latest
+            python-version: '3.8'
+            redis-version: '6'
+            coverage: true
+            lint: true
+          - os: macOS-latest
+            python-version: '3.8'
+            redis-version: '6'
+          - os: windows-latest
+            python-version: '3.8'
+            redis-version: '6'
 
-  tests-on-redis:
-
-    runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 3
-      matrix:
-        redis-version: [4, 5, 6, 7]
-    steps:
-    - uses: actions/checkout@v3.5.2
-    - name: Set up Python 3.6
-      uses: actions/setup-python@v4.6.1
-      with:
-        python-version: 3.6
-    - name: Install dependencies
-      run: |
-        pip install -U pip setuptools
-        pip install -U pipenv
-        pip install -e .
-        pipenv install -d --skip-lock --system
-    - name: Start Redis
-      uses: supercharge/redis-github-action@1.5.0
-      with:
-        redis-version: ${{ matrix.redis-version }}
-    - name: Test with pytest
-      run: |
-        pytest --cov=aioworkers_redis
-
-  tests-on-pypy:
-
-    runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 1
-      matrix:
-        python-version: [pypy-3.7, pypy-3.8, pypy-3.9]
+    runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v3.5.2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4.6.1
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        pip install -U pip setuptools
-        pip install -U pytest-aioworkers pytest-cov pyyaml
-        pip install -e .
-    - name: Start Redis
-      uses: supercharge/redis-github-action@1.5.0
-      with:
-        redis-version: 4
-    - name: Test with pytest
-      run: |
-        pytest --cov=aioworkers_redis --cov-report=xml
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3.1.4
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: true
+      - uses: actions/checkout@v3.5.2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4.6.1
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          pip install -U hatch
+      - name: ruff
+        if: ${{ matrix.lint }}
+        run: |
+          hatch run lint:ruff check aioworkers_redis tests
+      - name: isort
+        if: ${{ matrix.lint }}
+        run: |
+          hatch run lint:isort -c aioworkers_redis tests
+      - name: black
+        if: ${{ matrix.lint }}
+        run: |
+          hatch run lint:black --check --diff aioworkers_redis tests
+      - name: mypy
+        if: ${{ matrix.lint }}
+        run: |
+          hatch run lint:mypy aioworkers_redis tests
+      - name: Start Redis
+        uses: supercharge/redis-github-action@1.5.0
+        with:
+          redis-version: ${{ matrix.redis-version }}
+      - name: Tests with coverage
+        run: |
+          hatch run cov
+      - name: coverage.xml
+        if: ${{ matrix.coverage }}
+        run: |
+          hatch run coverage xml
+      - name: Upload coverage to Codecov
+        if: ${{ matrix.coverage }}
+        uses: codecov/codecov-action@v3.1.4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: true
