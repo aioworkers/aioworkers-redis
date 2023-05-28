@@ -65,7 +65,7 @@ class Connector(
                 )
             )
         else:
-            result = super().get_child_config(item, config)
+            result = super().get_child_config(item, config) or ValueExtractor()
         if self._connector is None:
             connection = self.config.get('connection')
             if not isinstance(connection, str):
@@ -77,6 +77,7 @@ class Connector(
             result = result.new_child(
                 connection=f'.{self._connector.config.name}',
             )
+        assert result is not None
         result = result.new_child(
             prefix=self.raw_key(result.get('prefix', item)),
         )
@@ -105,6 +106,7 @@ class Connector(
         c = self
         while True:
             if c._connector is not c:
+                assert c._connector
                 c = c._connector
             else:
                 if self.config.get('connect'):

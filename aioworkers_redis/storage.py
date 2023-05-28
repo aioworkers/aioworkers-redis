@@ -83,8 +83,8 @@ class HashStorage(FieldStorageMixin, Storage):
         elif fields:
             v = await self.pool.hmget(raw_key, *fields)
             m = self.model()
-            for f, v in zip(fields, v):
-                m[f] = self.decode(v)
+            for f, val in zip(fields, v):
+                m[f] = self.decode(val)
         else:
             a = await self.pool.hgetall(raw_key)
             m = self.model()
