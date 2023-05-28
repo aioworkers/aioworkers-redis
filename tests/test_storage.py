@@ -14,7 +14,9 @@ def config_yaml():
     hyperloglog:
         cls: aioworkers_redis.storage.HyperLogLogStorage
         key: hll
-    """.format(uuid=uuid.uuid4())
+    """.format(
+        uuid=uuid.uuid4()
+    )
 
 
 async def test_storage(context):
@@ -38,9 +40,11 @@ async def test_nested_storage(context):
 async def test_expiry_storage(event_loop, config):
     key = '6'
     data = {'f': 3, 'g': 4, 'h': 5}
-    config.update(storage=dict(
-        expiry=1,
-    ))
+    config.update(
+        storage=dict(
+            expiry=1,
+        )
+    )
     async with Context(config, loop=event_loop) as ctx:
         await ctx.storage.set(key, data)
         await ctx.storage.expiry(key, 1)
@@ -50,10 +54,12 @@ async def test_field_storage(event_loop, config):
     key = '6'
     data = {'f': 3, 'g': 4, 'h': 5}
     fields = ['f', 'g']
-    config.update(storage=dict(
-        cls='aioworkers_redis.storage.HashStorage',
-        expiry=1,
-    ))
+    config.update(
+        storage=dict(
+            cls="aioworkers_redis.storage.HashStorage",
+            expiry=1,
+        )
+    )
     async with Context(config, loop=event_loop) as ctx:
         storage = ctx.storage
         await storage.set(key, data)

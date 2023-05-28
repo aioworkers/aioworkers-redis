@@ -54,12 +54,16 @@ class Connector(
         return self._connector
 
     def get_child_config(
-        self, item: str, config: Optional[ValueExtractor] = None,
+        self,
+        item: str,
+        config: Optional[ValueExtractor] = None,
     ) -> Optional[ValueExtractor]:
         if config is None:
-            result = ValueExtractor(dict(
-                name=f'{self.config.name}.{item}',
-            ))
+            result = ValueExtractor(
+                dict(
+                    name=f"{self.config.name}.{item}",
+                )
+            )
         else:
             result = super().get_child_config(item, config)
         if self._connector is None:
@@ -86,7 +90,7 @@ class Connector(
         return self._joiner.join(k)
 
     def clean_key(self, raw_key: Union[str, bytes]) -> str:
-        result = raw_key[len(self._prefix) + len(self._joiner):]
+        result = raw_key[len(self._prefix) + len(self._joiner) :]
         if isinstance(result, str):
             return result
         return result.decode()

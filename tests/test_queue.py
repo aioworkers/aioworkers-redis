@@ -11,7 +11,9 @@ def config_yaml():
     return """
     q:
         key: {uuid}
-    """.format(uuid=uuid.uuid4())
+    """.format(
+        uuid=uuid.uuid4()
+    )
 
 
 async def test_queue(config, event_loop):
@@ -59,11 +61,13 @@ async def test_queue_json(config, event_loop):
 
 
 async def test_zqueue(config, event_loop):
-    config.update(q=dict(
-        cls='aioworkers_redis.queue.ZQueue',
-        format='json',
-        timeout=0,
-    ))
+    config.update(
+        q=dict(
+            cls="aioworkers_redis.queue.ZQueue",
+            format="json",
+            timeout=0,
+        )
+    )
     async with Context(config, loop=event_loop) as ctx:
         q = ctx.q
         await q.put('a', 4)
@@ -92,11 +96,13 @@ async def test_zqueue(config, event_loop):
 
 
 async def test_ts_zqueue(config, event_loop):
-    config.update(q=dict(
-        cls='aioworkers_redis.queue.TimestampZQueue',
-        format='json',
-        timeout=10,
-    ))
+    config.update(
+        q=dict(
+            cls="aioworkers_redis.queue.TimestampZQueue",
+            format="json",
+            timeout=10,
+        )
+    )
     async with Context(config, loop=event_loop) as ctx:
         q = ctx.q
         await q.put('c', time.time() + 4)
