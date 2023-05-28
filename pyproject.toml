@@ -69,7 +69,10 @@ features = [
     "dev-test",
 ]
 [tool.hatch.envs.default.scripts]
-cov = "coverage run -m pytest && coverage report"
+cov = [
+    "coverage run -m pytest",
+    "coverage report",
+]
 
 [[tool.hatch.envs.all.matrix]]
 python = [
