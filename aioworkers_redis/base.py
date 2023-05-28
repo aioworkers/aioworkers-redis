@@ -1,10 +1,6 @@
 from typing import Optional, Union
 
-from aioworkers.core.base import (
-    AbstractConnector,
-    AbstractNestedEntity,
-    LoggingEntity,
-)
+from aioworkers.core.base import AbstractConnector, AbstractNestedEntity, LoggingEntity
 from aioworkers.core.config import ValueExtractor
 from aioworkers.core.formatter import FormattedEntity
 from redis.asyncio import Redis
@@ -58,14 +54,18 @@ class Connector(
         return self._connector
 
     def get_child_config(
-        self, item: str, config: Optional[ValueExtractor] = None,
+        self,
+        item: str,
+        config: Optional[ValueExtractor] = None,
     ) -> Optional[ValueExtractor]:
         if config is None:
-            result = ValueExtractor(dict(
-                name=f'{self.config.name}.{item}',
-            ))
+            result = ValueExtractor(
+                dict(
+                    name=f"{self.config.name}.{item}",
+                )
+            )
         else:
-            result = super().get_child_config(item, config)
+            result = super().get_child_config(item, config) or ValueExtractor()
         if self._connector is None:
             connection = self.config.get('connection')
             if not isinstance(connection, str):
@@ -77,6 +77,7 @@ class Connector(
             result = result.new_child(
                 connection=f'.{self._connector.config.name}',
             )
+        assert result is not None
         result = result.new_child(
             prefix=self.raw_key(result.get('prefix', item)),
         )
@@ -90,7 +91,7 @@ class Connector(
         return self._joiner.join(k)
 
     def clean_key(self, raw_key: Union[str, bytes]) -> str:
-        result = raw_key[len(self._prefix) + len(self._joiner):]
+        result = raw_key[len(self._prefix) + len(self._joiner) :]
         if isinstance(result, str):
             return result
         return result.decode()
@@ -105,6 +106,7 @@ class Connector(
         c = self
         while True:
             if c._connector is not c:
+                assert c._connector
                 c = c._connector
             else:
                 if self.config.get('connect'):

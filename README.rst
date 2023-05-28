@@ -3,21 +3,42 @@ aioworkers-redis
 
 Redis plugin for `aioworkers`.
 
+.. image:: https://img.shields.io/pypi/v/aioworkers-redis.svg
+  :target: https://pypi.org/project/aioworkers-redis
+
 .. image:: https://github.com/aioworkers/aioworkers-redis/workflows/Tests/badge.svg
   :target: https://github.com/aioworkers/aioworkers-redis/actions?query=workflow%3ATests
 
 .. image:: https://codecov.io/gh/aioworkers/aioworkers-redis/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/aioworkers/aioworkers-redis
+  :alt: Coverage
 
-.. image:: https://img.shields.io/pypi/v/aioworkers-redis.svg
-  :target: https://pypi.org/project/aioworkers-redis
+.. image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v0.json
+  :target: https://github.com/charliermarsh/ruff
+  :alt: Code style: ruff
+
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+  :target: https://github.com/psf/black
+  :alt: Code style: black
+
+.. image:: https://img.shields.io/badge/types-Mypy-blue.svg
+  :target: https://github.com/python/mypy
+  :alt: Code style: Mypy
 
 .. image:: https://readthedocs.org/projects/aioworkers-redis/badge/?version=latest
-  :target: http://aioworkers-redis.readthedocs.io/en/latest/?badge=latest
+  :target: https://aioworkers-redis.readthedocs.io/en/latest/?badge=latest
   :alt: Documentation Status
 
 .. image:: https://img.shields.io/pypi/pyversions/aioworkers-redis.svg
-  :target: https://pypi.python.org/pypi/aioworkers-redis
+  :target: https://pypi.org/project/aioworkers-redis
+  :alt: Python versions
+
+.. image:: https://img.shields.io/pypi/dm/aioworkers-redis.svg
+  :target: https://pypi.org/project/aioworkers-redis
+
+.. image:: https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg
+  :alt: Hatch project
+  :target: https://github.com/pypa/hatch
 
 
 Features
@@ -84,3 +105,34 @@ You can work with redis queue like this:
 
     await context.queue.put({'a': 1})
     d = await context.queue.get()
+
+
+Development
+-----------
+
+Check code:
+
+.. code-block:: shell
+
+    hatch run lint:all
+
+
+Format code:
+
+.. code-block:: shell
+
+    hatch run lint:fmt
+
+
+Run tests:
+
+.. code-block:: shell
+
+    hatch run pytest
+
+
+Run tests with coverage:
+
+.. code-block:: shell
+
+    hatch run cov

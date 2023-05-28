@@ -14,7 +14,9 @@ class Storage(Connector, AbstractListedStorage, AbstractExpiryStorage):
     def set_config(self, config):
         super().set_config(config)
         self._expiry = self.config.get_duration(
-            'expiry', default=None, null=True,
+            "expiry",
+            default=None,
+            null=True,
         )
 
     async def list(self):
@@ -49,7 +51,6 @@ class Storage(Connector, AbstractListedStorage, AbstractExpiryStorage):
 
 
 class HashStorage(FieldStorageMixin, Storage):
-
     async def set(self, key, value, *, field=None, fields=None):
         raw_key = self.raw_key(key)
         to_del = []
@@ -82,8 +83,8 @@ class HashStorage(FieldStorageMixin, Storage):
         elif fields:
             v = await self.pool.hmget(raw_key, *fields)
             m = self.model()
-            for f, v in zip(fields, v):
-                m[f] = self.decode(v)
+            for f, val in zip(fields, v):
+                m[f] = self.decode(val)
         else:
             a = await self.pool.hgetall(raw_key)
             m = self.model()

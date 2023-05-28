@@ -11,12 +11,14 @@ def config_yaml():
     return """
     q:
         key: {uuid}
-    """.format(uuid=uuid.uuid4())
+    """.format(
+        uuid=uuid.uuid4()
+    )
 
 
-async def test_queue(config, loop):
+async def test_queue(config, event_loop):
     config.update(q=dict(cls='aioworkers_redis.queue.Queue'))
-    async with Context(config, loop=loop) as ctx:
+    async with Context(config, loop=event_loop) as ctx:
         q = ctx.q
         await q.put(3)
         assert 1 == await q.length()
@@ -34,9 +36,9 @@ async def test_queue(config, loop):
             await q.get(timeout=1)
 
 
-async def test_nested_queue(config, loop):
+async def test_nested_queue(config, event_loop):
     config.update(q=dict(cls='aioworkers_redis.queue.Queue', format='json'))
-    async with Context(config, loop=loop) as ctx:
+    async with Context(config, loop=event_loop) as ctx:
         q = ctx.q
         q_child = q.child
         await q_child.put(1)
@@ -44,9 +46,9 @@ async def test_nested_queue(config, loop):
         assert 1 == await q_child.get()
 
 
-async def test_queue_json(config, loop):
+async def test_queue_json(config, event_loop):
     config.update(q=dict(cls='aioworkers_redis.queue.Queue', format='json'))
-    async with Context(config, loop=loop) as ctx:
+    async with Context(config, loop=event_loop) as ctx:
         q = ctx.q
         await q.put({'f': 3})
         assert 1 == await q.length()
@@ -58,13 +60,15 @@ async def test_queue_json(config, loop):
         assert not await q.length()
 
 
-async def test_zqueue(config, loop):
-    config.update(q=dict(
-        cls='aioworkers_redis.queue.ZQueue',
-        format='json',
-        timeout=0,
-    ))
-    async with Context(config, loop=loop) as ctx:
+async def test_zqueue(config, event_loop):
+    config.update(
+        q=dict(
+            cls="aioworkers_redis.queue.ZQueue",
+            format="json",
+            timeout=0,
+        )
+    )
+    async with Context(config, loop=event_loop) as ctx:
         q = ctx.q
         await q.put('a', 4)
         await q.put('c', 3)
@@ -91,13 +95,15 @@ async def test_zqueue(config, loop):
                 await q.get()
 
 
-async def test_ts_zqueue(config, loop):
-    config.update(q=dict(
-        cls='aioworkers_redis.queue.TimestampZQueue',
-        format='json',
-        timeout=10,
-    ))
-    async with Context(config, loop=loop) as ctx:
+async def test_ts_zqueue(config, event_loop):
+    config.update(
+        q=dict(
+            cls="aioworkers_redis.queue.TimestampZQueue",
+            format="json",
+            timeout=10,
+        )
+    )
+    async with Context(config, loop=event_loop) as ctx:
         q = ctx.q
         await q.put('c', time.time() + 4)
         await q.put('a', 4)
