@@ -36,7 +36,7 @@ dependencies = [
 ]
 [project.optional-dependencies]
 dev-test = [
-    "aioworkers==0.21.1",
+    "aioworkers==0.22",
     "coverage[toml]==7.2.7",
     "pytest==7.3.1",
     "pytest-aioworkers[asyncio]==0.4",
