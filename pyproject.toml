@@ -41,7 +41,7 @@ dev-test = [
     "pytest==7.4.0",
     "pytest-aioworkers[asyncio]==0.4",
     "pytest-mock==3.11.1",
-    "pyyaml==6.0",
+    "pyyaml==6.0.1",
 ]
 dev-lint = [
     "ruff==0.0.278",
