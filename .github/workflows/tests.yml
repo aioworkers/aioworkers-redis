@@ -66,7 +66,7 @@ jobs:
         run: |
           hatch run lint:mypy aioworkers_redis tests
       - name: Start Redis
-        uses: supercharge/redis-github-action@1.5.0
+        uses: supercharge/redis-github-action@1.6.0
         with:
           redis-version: ${{ matrix.redis-version }}
       - name: Tests with coverage
