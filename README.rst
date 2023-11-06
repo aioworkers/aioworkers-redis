@@ -26,7 +26,7 @@ Redis plugin for `aioworkers`.
   :alt: Code style: Mypy
 
 .. image:: https://readthedocs.org/projects/aioworkers-redis/badge/?version=latest
-  :target: https://aioworkers-redis.readthedocs.io/en/latest/?badge=latest
+  :target: https://github.com/aioworkers/aioworkers-redis#readme
   :alt: Documentation Status
 
 .. image:: https://img.shields.io/pypi/pyversions/aioworkers-redis.svg
