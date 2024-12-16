@@ -23,10 +23,10 @@ class Queue(KeyEntity, AbstractQueue):
     async def get(self, *, timeout: float = 0):
         async with self._lock:
             result = await self.pool.blpop(self.key, timeout)
-        if timeout and result is None:
+        if result is not None:
+            return self.decode(result[-1])
+        elif timeout:
             raise TimeoutError
-        value = self.decode(result[-1])
-        return value
 
     async def length(self):
         return await self.pool.llen(self.key)
