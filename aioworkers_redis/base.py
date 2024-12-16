@@ -119,23 +119,23 @@ class Connector(
         self._client = await self.client_factory(cfg)
 
     async def client_factory(self, cfg: dict) -> Redis:
-        if cfg.get('dsn'):
-            address = cfg.pop('dsn')
-        elif cfg.get('address'):
-            address = cfg.pop('address')
+        if cfg.get("dsn"):
+            address = cfg.pop("dsn")
+        elif cfg.get("address"):
+            address = cfg.pop("address")
         else:
-            host = cfg.pop('host', DEFAULT_HOST)
-            port = cfg.pop('port', DEFAULT_PORT)
-            address = 'redis://{}:{}'.format(host, port)
-        if 'maxsize' in cfg:
-            cfg['max_connections'] = cfg.pop('maxsize')
-        self.logger.debug('Create client with address %s', address)
+            host = cfg.pop("host", DEFAULT_HOST)
+            port = cfg.pop("port", DEFAULT_PORT)
+            address = "redis://{}:{}".format(host, port)
+        if "maxsize" in cfg:
+            cfg["max_connections"] = cfg.pop("maxsize")
+        self.logger.debug("Create client with address %s", address)
         return Redis.from_url(address, **cfg)
 
     async def disconnect(self):
         client = self._client
         if client is not None:
-            self.logger.debug('Close connection')
+            self.logger.debug("Close connection")
             await client.close()
 
     def decode(self, b):
