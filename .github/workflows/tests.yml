@@ -32,9 +32,6 @@ jobs:
             lint: true
           - os: ubuntu-22.04
             redis-version: '6'
-            python-version: pypy-3.8
-          - os: ubuntu-22.04
-            redis-version: '6'
             python-version: pypy-3.9
 
     runs-on: ${{ matrix.os }}
