@@ -5,7 +5,6 @@ from aioworkers.core.config import ValueExtractor
 from aioworkers.core.formatter import FormattedEntity
 from redis.asyncio import Redis
 
-
 DEFAULT_HOST = "localhost"
 DEFAULT_PORT = 6379
 
