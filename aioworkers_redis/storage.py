@@ -20,11 +20,11 @@ class Storage(Connector, AbstractListedStorage, AbstractExpiryStorage):
         )
 
     async def list(self):
-        keys = await self.pool.keys(self.raw_key('*'))
+        keys = await self.pool.keys(self.raw_key("*"))
         return [self.clean_key(i) for i in keys]
 
     async def length(self):
-        keys = await self.pool.keys(self.raw_key('*'))
+        keys = await self.pool.keys(self.raw_key("*"))
         return len(keys)
 
     async def set(self, key, value):
@@ -99,7 +99,7 @@ class HyperLogLogStorage(KeyEntity, AbstractBaseStorage):
         await self.pool.pfadd(self.key, key)
 
     async def get(self, key):
-        tmp_key = self.raw_key('tmp:hhl:' + key)
+        tmp_key = self.raw_key("tmp:hhl:" + key)
         await self.pool.pfmerge(tmp_key, self.key)
         result = await self.pool.pfadd(tmp_key, key)
         await self.pool.delete(tmp_key)

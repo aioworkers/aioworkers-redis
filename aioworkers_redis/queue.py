@@ -20,13 +20,13 @@ class Queue(KeyEntity, AbstractQueue):
         value = self.encode(value)
         return await self.pool.rpush(self.key, value)
 
-    async def get(self, *, timeout=0):
+    async def get(self, *, timeout: float = 0):
         async with self._lock:
             result = await self.pool.blpop(self.key, timeout)
-        if timeout and result is None:
+        if result is not None:
+            return self.decode(result[-1])
+        elif timeout:
             raise TimeoutError
-        value = self.decode(result[-1])
-        return value
 
     async def length(self):
         return await self.pool.llen(self.key)
@@ -43,20 +43,20 @@ class Queue(KeyEntity, AbstractQueue):
 
 
 class BaseZQueue(Queue):
-    script = ''
+    script = ""
 
     async def put(self, value):
         score, val = value
         val = self.encode(val)
         return await self.pool.zadd(self.key, {val: score})
 
-    async def get(self):
+    async def get(self, *, timeout: float = 0):
         async with self._lock:
             while True:
                 lv = await self.pool.eval(self.script, 1, self.key)
                 if lv:
                     break
-                await asyncio.sleep(self.config.timeout)
+                await asyncio.sleep(timeout or self.config.timeout)
         value, score = lv
         return float(score), self.decode(value)
 
@@ -71,7 +71,7 @@ class BaseZQueue(Queue):
         await self.pool.zrem(self.key, value)
 
 
-@score_queue('time.time')
+@score_queue("time.time")
 class ZQueue(BaseZQueue):
     script = """
         local val = redis.call('zrange', KEYS[1], 0, 0, 'WITHSCORES')
@@ -80,7 +80,7 @@ class ZQueue(BaseZQueue):
         """
 
 
-@score_queue('time.time')
+@score_queue("time.time")
 class TimestampZQueue(BaseZQueue):
     script = """
         local val = redis.call('ZRANGE', KEYS[1], 0, 0, 'WITHSCORES')
@@ -94,12 +94,12 @@ class TimestampZQueue(BaseZQueue):
         return val
         """
 
-    async def get(self):
+    async def get(self, *, timeout: float = 0):
         async with self._lock:
             while True:
                 lv = await self.pool.eval(self.script, 1, self.key, time.time())
                 if lv:
                     break
-                await asyncio.sleep(self.config.timeout)
+                await asyncio.sleep(timeout or self.config.timeout)
         value, score = lv
         return float(score), self.decode(value)

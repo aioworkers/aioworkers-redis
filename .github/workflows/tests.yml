@@ -15,7 +15,7 @@ jobs:
       max-parallel: 7
       matrix:
         os:
-          - ubuntu-latest
+          - ubuntu-22.04
         redis-version:
           - '5'
           - '6'
@@ -25,15 +25,12 @@ jobs:
           - '3.10'
           - '3.11'
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             redis-version: '6'
             python-version: '3.8'
             coverage: true
             lint: true
-          - os: ubuntu-latest
-            redis-version: '6'
-            python-version: pypy-3.8
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             redis-version: '6'
             python-version: pypy-3.9
 
@@ -51,15 +48,7 @@ jobs:
       - name: ruff
         if: ${{ matrix.lint }}
         run: |
-          hatch run lint:ruff check aioworkers_redis tests
-      - name: isort
-        if: ${{ matrix.lint }}
-        run: |
-          hatch run lint:isort -c aioworkers_redis tests
-      - name: black
-        if: ${{ matrix.lint }}
-        run: |
-          hatch run lint:black --check --diff aioworkers_redis tests
+          hatch run lint:style aioworkers_redis tests
       - name: mypy
         if: ${{ matrix.lint }}
         run: |
@@ -76,8 +65,8 @@ jobs:
         run: |
           hatch run coverage xml
       - name: Upload coverage to Codecov
-        if: ${{ matrix.coverage }}
-        uses: codecov/codecov-action@v5.0.7
+        if: ${{ matrix.coverage && github.ref == 'refs/heads/master' }}
+        uses: codecov/codecov-action@v5.1.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.xml

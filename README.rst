@@ -17,10 +17,6 @@ Redis plugin for `aioworkers`.
   :target: https://github.com/charliermarsh/ruff
   :alt: Code style: ruff
 
-.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
-  :target: https://github.com/psf/black
-  :alt: Code style: black
-
 .. image:: https://img.shields.io/badge/types-Mypy-blue.svg
   :target: https://github.com/python/mypy
   :alt: Code style: Mypy
@@ -34,7 +30,7 @@ Redis plugin for `aioworkers`.
   :alt: Python versions
 
 .. image:: https://img.shields.io/pypi/dm/aioworkers-redis.svg
-  :target: https://pypi.org/project/aioworkers-redis
+  :target: https://pypistats.org/packages/aioworkers-redis
 
 .. image:: https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg
   :alt: Hatch project
