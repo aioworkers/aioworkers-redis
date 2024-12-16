@@ -141,6 +141,12 @@ strict_optional = true
 warn_redundant_casts = true
 check_untyped_defs = true
 
+[[tool.mypy.overrides]]
+module = [
+    "pytest",
+]
+ignore_missing_imports = true
+
 [tool.hatch.envs.lint]
 python = "3.8"
 features = [
