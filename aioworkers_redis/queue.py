@@ -43,7 +43,7 @@ class Queue(KeyEntity, AbstractQueue):
 
 
 class BaseZQueue(Queue):
-    script = ''
+    script = ""
 
     async def put(self, value):
         score, val = value
@@ -71,7 +71,7 @@ class BaseZQueue(Queue):
         await self.pool.zrem(self.key, value)
 
 
-@score_queue('time.time')
+@score_queue("time.time")
 class ZQueue(BaseZQueue):
     script = """
         local val = redis.call('zrange', KEYS[1], 0, 0, 'WITHSCORES')
@@ -80,7 +80,7 @@ class ZQueue(BaseZQueue):
         """
 
 
-@score_queue('time.time')
+@score_queue("time.time")
 class TimestampZQueue(BaseZQueue):
     script = """
         local val = redis.call('ZRANGE', KEYS[1], 0, 0, 'WITHSCORES')

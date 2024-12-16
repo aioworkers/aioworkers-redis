@@ -47,7 +47,7 @@ class Connector(
         if isinstance(cfg, str):
             self.logger.debug("Connect to %s", cfg)
             self._connector = self.context.get_object(cfg)
-            assert self._connector is not None, 'Not found reference %s' % cfg
+            assert self._connector is not None, "Not found reference %s" % cfg
         else:
             self._connector = self
         return self._connector
