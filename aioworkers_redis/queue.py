@@ -20,7 +20,7 @@ class Queue(KeyEntity, AbstractQueue):
         value = self.encode(value)
         return await self.pool.rpush(self.key, value)
 
-    async def get(self, *, timeout=0):
+    async def get(self, *, timeout: float = 0):
         async with self._lock:
             result = await self.pool.blpop(self.key, timeout)
         if timeout and result is None:
@@ -50,13 +50,13 @@ class BaseZQueue(Queue):
         val = self.encode(val)
         return await self.pool.zadd(self.key, {val: score})
 
-    async def get(self):
+    async def get(self, *, timeout: float = 0):
         async with self._lock:
             while True:
                 lv = await self.pool.eval(self.script, 1, self.key)
                 if lv:
                     break
-                await asyncio.sleep(self.config.timeout)
+                await asyncio.sleep(timeout or self.config.timeout)
         value, score = lv
         return float(score), self.decode(value)
 
@@ -94,12 +94,12 @@ class TimestampZQueue(BaseZQueue):
         return val
         """
 
-    async def get(self):
+    async def get(self, *, timeout: float = 0):
         async with self._lock:
             while True:
                 lv = await self.pool.eval(self.script, 1, self.key, time.time())
                 if lv:
                     break
-                await asyncio.sleep(self.config.timeout)
+                await asyncio.sleep(timeout or self.config.timeout)
         value, score = lv
         return float(score), self.decode(value)
