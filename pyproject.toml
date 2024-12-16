@@ -30,23 +30,21 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-    "aioworkers>=0.21.1",
+    "aioworkers>=0.27.0",
     "redis>=4.3",
 ]
 [project.optional-dependencies]
 dev-test = [
     "aioworkers==0.27.0",
-    "coverage[toml]==7.6.1",
+    "coverage[toml]==7.6.9",
     "pytest==8.3.4",
-    "pytest-aioworkers[asyncio]==0.4",
+    "pytest-aioworkers[asyncio]==0.4.0",
     "pytest-mock==3.14.0",
     "pyyaml==6.0.2",
 ]
 dev-lint = [
-    "ruff==0.8.1",
-    "isort==5.13.2",
-    "black==24.2.0",
-    "mypy==1.9.0",
+    "ruff==0.8.3",
+    "mypy==1.13.0",
     "types-redis==4.6.0.20241004",
 ]
 
@@ -107,32 +105,41 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 
-[tool.black]
+[tool.ruff]
 line-length = 120
-skip-string-normalization = true
-target-version = [
-    "py38",
-    "py39",
-    "py310",
-    "py311",
+indent-width = 4
+target-version = "py38"
+
+[tool.ruff.lint]
+extend-select = [
+  # pycodestyle
+  "E",
+  # Pyflakes
+  "F",
+  # pyupgrade
+  # "UP",
+  # flake8-bugbear
+  "B",
+  # flake8-simplify
+  # "SIM",
+  # isort
+  "I",
+]
+extend-ignore = [
+    "E501",
 ]
 
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-lines_after_imports = 2
-force_single_line = false
-include_trailing_comma = true
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
 
 [tool.mypy]
 follow_imports = "silent"
 strict_optional = true
 warn_redundant_casts = true
-ignore_missing_imports = true
 check_untyped_defs = true
-
-[tool.ruff]
-line-length = 120
 
 [tool.hatch.envs.lint]
 python = "3.8"
@@ -142,14 +149,12 @@ features = [
 [tool.hatch.envs.lint.scripts]
 typing = "mypy --install-types --non-interactive {args:aioworkers_redis tests}"
 style = [
-    "ruff {args:aioworkers_redis tests}",
-    "isort --check-only --diff {args:aioworkers_redis tests}",
-    "black --check --diff {args:aioworkers_redis tests}",
+    "ruff check {args:aioworkers_redis tests}",
+    "ruff format --check --diff {args:aioworkers_redis tests}",
 ]
 fmt = [
-    "ruff --fix {args:aioworkers_redis tests}",
-    "isort {args:aioworkers_redis tests}",
-    "black {args:aioworkers_redis tests}",
+    "ruff check --fix {args:aioworkers_redis tests}",
+    "ruff format {args:aioworkers_redis tests}",
     "style",
 ]
 all = [

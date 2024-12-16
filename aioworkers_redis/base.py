@@ -6,7 +6,7 @@ from aioworkers.core.formatter import FormattedEntity
 from redis.asyncio import Redis
 
 
-DEFAULT_HOST = 'localhost'
+DEFAULT_HOST = "localhost"
 DEFAULT_PORT = 6379
 
 
@@ -17,36 +17,36 @@ class Connector(
     LoggingEntity,
 ):
     def __init__(self, *args, **kwargs):
-        self._joiner: str = ':'
-        self._prefix: str = ''
+        self._joiner: str = ":"
+        self._prefix: str = ""
         self._connector: Optional[Connector] = None
         self._client: Optional[Redis] = None
         super().__init__(*args, **kwargs)
 
     def set_config(self, config):
-        self._joiner = config.get('joiner', ':')
-        self._prefix = config.get('prefix', '')
-        cfg = config.new_parent(logger='aioworkers_redis')
-        c = cfg.get('connection')
+        self._joiner = config.get("joiner", ":")
+        self._prefix = config.get("prefix", "")
+        cfg = config.new_parent(logger="aioworkers_redis")
+        c = cfg.get("connection")
         if not isinstance(c, str):
-            if cfg.get('dsn'):
-                cfg = cfg.new_child(connection=dict(dsn=cfg.get('dsn')))
-        elif c.startswith('redis://'):
+            if cfg.get("dsn"):
+                cfg = cfg.new_child(connection=dict(dsn=cfg.get("dsn")))
+        elif c.startswith("redis://"):
             cfg = cfg.new_child(connection=dict(dsn=c))
-        elif not c.startswith('.'):
-            raise ValueError('Connector link must be startswith point .%s' % c)
+        elif not c.startswith("."):
+            raise ValueError("Connector link must be startswith point .%s" % c)
         super().set_config(cfg)
 
     @property
     def pool(self) -> Redis:
         connector = self._connector or self._get_connector()
-        assert connector._client is not None, 'Client is not ready'
+        assert connector._client is not None, "Client is not ready"
         return connector._client
 
-    def _get_connector(self) -> 'Connector':
-        cfg = self.config.get('connection')
+    def _get_connector(self) -> "Connector":
+        cfg = self.config.get("connection")
         if isinstance(cfg, str):
-            self.logger.debug('Connect to %s', cfg)
+            self.logger.debug("Connect to %s", cfg)
             self._connector = self.context.get_object(cfg)
             assert self._connector is not None, 'Not found reference %s' % cfg
         else:
@@ -67,23 +67,23 @@ class Connector(
         else:
             result = super().get_child_config(item, config) or ValueExtractor()
         if self._connector is None:
-            connection = self.config.get('connection')
+            connection = self.config.get("connection")
             if not isinstance(connection, str):
-                connection = f'.{self.config.name}'
+                connection = f".{self.config.name}"
             result = result.new_parent(
                 connection=connection,
             )
         else:
             result = result.new_child(
-                connection=f'.{self._connector.config.name}',
+                connection=f".{self._connector.config.name}",
             )
         assert result is not None
         result = result.new_child(
-            prefix=self.raw_key(result.get('prefix', item)),
+            prefix=self.raw_key(result.get("prefix", item)),
         )
         return result.new_parent(
             joiner=self._joiner,
-            format=self.config.get('format'),
+            format=self.config.get("format"),
         )
 
     def raw_key(self, key: str) -> str:
@@ -101,7 +101,7 @@ class Connector(
         if connector is not self:
             return
 
-        cfg = self.config.get('connection')
+        cfg = self.config.get("connection")
 
         c = self
         while True:
@@ -109,9 +109,9 @@ class Connector(
                 assert c._connector
                 c = c._connector
             else:
-                if self.config.get('connect'):
+                if self.config.get("connect"):
                     self._connector = self
-                    cfg = c.config.get('connection')
+                    cfg = c.config.get("connection")
                 break
         if cfg:
             cfg = dict(cfg)
@@ -158,7 +158,7 @@ class Connector(
 class KeyEntity(Connector):
     @property
     def key(self):
-        if not hasattr(self, '_key'):
+        if not hasattr(self, "_key"):
             self._key = self.raw_key(self.config.key)
         return self._key
 
