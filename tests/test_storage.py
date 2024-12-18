@@ -3,6 +3,8 @@ import uuid
 import pytest
 from aioworkers.core.context import Context
 
+from aioworkers_redis.storage import HashStorage, HyperLogLogStorage, Storage
+
 
 @pytest.fixture
 def config_yaml():
@@ -18,7 +20,7 @@ def config_yaml():
 
 
 async def test_storage(context):
-    s = context.storage
+    s: Storage = context.storage
     await s.set("g", {"f": 3})
     assert {"f": 3} == await s.get("g")
     assert 1 == await s.length()
@@ -28,14 +30,14 @@ async def test_storage(context):
 
 
 async def test_nested_storage(context):
-    s = context.storage
+    s: Storage = context.storage
     q_child = s.child
     await q_child.set("1", 1)
     assert q_child.raw_key("1") == s.config.prefix + ":child:1"
     assert 1 == await q_child.get("1")
 
 
-async def test_expiry_storage(event_loop, config):
+async def test_expiry_storage(config):
     key = "6"
     data = {"f": 3, "g": 4, "h": 5}
     config.update(
@@ -43,12 +45,12 @@ async def test_expiry_storage(event_loop, config):
             expiry=1,
         )
     )
-    async with Context(config, loop=event_loop) as ctx:
+    async with Context(config) as ctx:
         await ctx.storage.set(key, data)
         await ctx.storage.expiry(key, 1)
 
 
-async def test_field_storage(event_loop, config):
+async def test_field_storage(config):
     key = "6"
     data = {"f": 3, "g": 4, "h": 5}
     fields = ["f", "g"]
@@ -58,8 +60,8 @@ async def test_field_storage(event_loop, config):
             expiry=1,
         )
     )
-    async with Context(config, loop=event_loop) as ctx:
-        storage = ctx.storage
+    async with Context(config) as ctx:
+        storage: HashStorage = ctx.storage
         await storage.set(key, data)
         assert data == await storage.get(key)
         assert 5 == await storage.get(key, field="h")
@@ -73,7 +75,7 @@ async def test_field_storage(event_loop, config):
 
 
 async def test_hyperloglog(context):
-    hll = context.hyperloglog
+    hll: HyperLogLogStorage = context.hyperloglog
     await hll.set("a", True)
     assert True is await hll.get("a")
     assert False is await hll.get("b")
