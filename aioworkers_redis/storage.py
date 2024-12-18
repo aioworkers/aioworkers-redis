@@ -89,7 +89,9 @@ class HashStorage(FieldStorageMixin, Storage):
             a = await self.adapter.hgetall(raw_key)
             m = self.model()
             for f, v in a.items():
-                m[f.decode()] = self.decode(v)
+                if isinstance(f, bytes):
+                    f = f.decode()
+                m[f] = self.decode(v)
         return m
 
 

@@ -22,7 +22,7 @@ class Queue(KeyEntity, AbstractQueue):
 
     async def get(self, *, timeout: float = 0):
         async with self._lock:
-            result = await self.adapter.blpop(self.key, timeout)
+            result = await self.adapter.blpop(self.key, timeout=timeout)
         if result is not None:
             return self.decode(result[-1])
         elif timeout:
