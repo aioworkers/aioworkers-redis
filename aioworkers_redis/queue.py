@@ -18,28 +18,28 @@ class Queue(KeyEntity, AbstractQueue):
 
     async def put(self, value):
         value = self.encode(value)
-        return await self.pool.rpush(self.key, value)
+        return await self.adapter.rpush(self.key, value)
 
     async def get(self, *, timeout: float = 0):
         async with self._lock:
-            result = await self.pool.blpop(self.key, timeout)
+            result = await self.adapter.blpop(self.key, timeout=timeout)
         if result is not None:
             return self.decode(result[-1])
         elif timeout:
             raise TimeoutError
 
     async def length(self):
-        return await self.pool.llen(self.key)
+        return await self.adapter.llen(self.key)
 
     async def list(self):
-        return [self.decode(i) for i in await self.pool.lrange(self.key, 0, -1)]
+        return [self.decode(i) for i in await self.adapter.lrange(self.key, 0, -1)]
 
     async def remove(self, value):
         value = self.encode(value)
-        await self.pool.lrem(self.key, 0, value)
+        await self.adapter.lrem(self.key, 0, value)
 
     async def clear(self):
-        return await self.pool.delete(self.key)
+        return await self.adapter.delete(self.key)
 
 
 class BaseZQueue(Queue):
@@ -48,12 +48,12 @@ class BaseZQueue(Queue):
     async def put(self, value):
         score, val = value
         val = self.encode(val)
-        return await self.pool.zadd(self.key, {val: score})
+        return await self.adapter.zadd(self.key, {val: score})
 
     async def get(self, *, timeout: float = 0):
         async with self._lock:
             while True:
-                lv = await self.pool.eval(self.script, 1, self.key)
+                lv = await self.adapter.eval(self.script, 1, self.key)
                 if lv:
                     break
                 await asyncio.sleep(timeout or self.config.timeout)
@@ -61,14 +61,14 @@ class BaseZQueue(Queue):
         return float(score), self.decode(value)
 
     async def length(self):
-        return await self.pool.zcard(self.key)
+        return await self.adapter.zcard(self.key)
 
     async def list(self):
-        return [self.decode(i) for i in await self.pool.zrange(self.key, 0, -1)]
+        return [self.decode(i) for i in await self.adapter.zrange(self.key, 0, -1)]
 
     async def remove(self, value):
         value = self.encode(value)
-        await self.pool.zrem(self.key, value)
+        await self.adapter.zrem(self.key, value)
 
 
 @score_queue("time.time")
@@ -97,7 +97,7 @@ class TimestampZQueue(BaseZQueue):
     async def get(self, *, timeout: float = 0):
         async with self._lock:
             while True:
-                lv = await self.pool.eval(self.script, 1, self.key, time.time())
+                lv = await self.adapter.eval(self.script, 1, self.key, time.time())
                 if lv:
                     break
                 await asyncio.sleep(timeout or self.config.timeout)

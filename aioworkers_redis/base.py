@@ -1,12 +1,16 @@
-from typing import Optional, Union
+from typing import Any, Optional, Type, Union
 
 from aioworkers.core.base import AbstractConnector, AbstractNestedEntity, LoggingEntity
 from aioworkers.core.config import ValueExtractor
 from aioworkers.core.formatter import FormattedEntity
-from redis.asyncio import Redis
+from aioworkers.core.plugin import iter_entry_points
+
+from aioworkers_redis.adapter import Adapter, AdapterHolder
 
 DEFAULT_HOST = "localhost"
 DEFAULT_PORT = 6379
+
+Client = Any
 
 
 class Connector(
@@ -19,7 +23,8 @@ class Connector(
         self._joiner: str = ":"
         self._prefix: str = ""
         self._connector: Optional[Connector] = None
-        self._client: Optional[Redis] = None
+        self._adapter_holder: Optional[AdapterHolder] = None
+        self._adapter: Optional[Adapter] = None
         super().__init__(*args, **kwargs)
 
     def set_config(self, config):
@@ -37,10 +42,17 @@ class Connector(
         super().set_config(cfg)
 
     @property
-    def pool(self) -> Redis:
+    def pool(self) -> Client:
         connector = self._connector or self._get_connector()
-        assert connector._client is not None, "Client is not ready"
-        return connector._client
+        assert connector._adapter_holder is not None, "Client is not ready"
+        assert connector._adapter_holder.client is not None, "Client is not ready"
+        return connector._adapter_holder.client
+
+    @property
+    def adapter(self) -> Adapter:
+        connector = self._connector or self._get_connector()
+        assert connector._adapter is not None, "Adapter is not ready"
+        return connector._adapter
 
     def _get_connector(self) -> "Connector":
         cfg = self.config.get("connection")
@@ -116,9 +128,12 @@ class Connector(
             cfg = dict(cfg)
         else:
             cfg = {}
-        self._client = await self.client_factory(cfg)
 
-    async def client_factory(self, cfg: dict) -> Redis:
+        if entry_point_name := self.config.get("client"):
+            cfg.setdefault("client", entry_point_name)
+        if entry_point_name := c.config.get("client"):
+            cfg.setdefault("client", entry_point_name)
+
         if cfg.get("dsn"):
             address = cfg.pop("dsn")
         elif cfg.get("address"):
@@ -128,15 +143,36 @@ class Connector(
             port = cfg.pop("port", DEFAULT_PORT)
             address = "redis://{}:{}".format(host, port)
         if "maxsize" in cfg:
-            cfg["max_connections"] = cfg.pop("maxsize")
-        self.logger.debug("Create client with address %s", address)
-        return Redis.from_url(address, **cfg)
+            cfg["max_size"] = cfg.pop("maxsize")
+
+        client_name = cfg.pop("client", None)
+        priority = {
+            "redis-rs": 888,
+            "redis-py": 88,
+            "aioredis": 8,
+        }
+        entry_points = list(iter_entry_points(group="aioworkers_redis", name=client_name))
+        entry_points.sort(key=lambda x: priority.get(x.name, 0), reverse=True)
+        for p in entry_points:
+            try:
+                factory: Type[AdapterHolder] = p.load()
+            except ImportError as e:
+                if client_name:
+                    raise ImportError(f"Try loading {client_name}") from e
+                else:
+                    continue
+            else:
+                self._adapter_holder = factory(logger=self.logger)
+                self.logger.info("Create client with address %s", address)
+                self._adapter = await self._adapter_holder.__aenter__(address, **cfg)
+                break
+        else:
+            raise ImportError("Try loading plugins " + ",".join(e.name for e in entry_points))
 
     async def disconnect(self):
-        client = self._client
-        if client is not None:
+        if adapter := self._adapter_holder:
             self.logger.debug("Close connection")
-            await client.close()
+            await adapter.__aexit__(None, None, None)
 
     def decode(self, b):
         if b is not None:

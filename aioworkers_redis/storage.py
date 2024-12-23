@@ -20,11 +20,11 @@ class Storage(Connector, AbstractListedStorage, AbstractExpiryStorage):
         )
 
     async def list(self):
-        keys = await self.pool.keys(self.raw_key("*"))
+        keys = await self.adapter.keys(self.raw_key("*"))
         return [self.clean_key(i) for i in keys]
 
     async def length(self):
-        keys = await self.pool.keys(self.raw_key("*"))
+        keys = await self.adapter.keys(self.raw_key("*"))
         return len(keys)
 
     async def set(self, key, value):
@@ -33,21 +33,21 @@ class Storage(Connector, AbstractListedStorage, AbstractExpiryStorage):
         if not is_null:
             value = self.encode(value)
         if is_null:
-            return await self.pool.delete(raw_key)
+            return await self.adapter.delete(raw_key)
         elif self._expiry:
-            return await self.pool.setex(raw_key, self._expiry, value)
+            return await self.adapter.set(raw_key, value, ex=self._expiry)
         else:
-            return await self.pool.set(raw_key, value)
+            return await self.adapter.set(raw_key, value)
 
     async def get(self, key):
         raw_key = self.raw_key(key)
-        value = await self.pool.get(raw_key)
+        value = await self.adapter.get(raw_key)
         if value is not None:
             return self.decode(value)
 
     async def expiry(self, key, expiry):
         raw_key = self.raw_key(key)
-        await self.pool.expire(raw_key, expiry)
+        await self.adapter.expire(raw_key, expiry)
 
 
 class HashStorage(FieldStorageMixin, Storage):
@@ -58,9 +58,9 @@ class HashStorage(FieldStorageMixin, Storage):
             if value is None:
                 to_del.append(field)
             else:
-                return await self.pool.hset(raw_key, field, self.encode(value))
+                return await self.adapter.hset(raw_key, field, self.encode(value))
         elif value is None:
-            return await self.pool.delete(raw_key)
+            return await self.adapter.delete(raw_key)
         else:
             pairs = {}
             for f in fields or value:
@@ -70,41 +70,43 @@ class HashStorage(FieldStorageMixin, Storage):
                 else:
                     pairs[f] = self.encode(v)
             if pairs:
-                await self.pool.hset(raw_key, mapping=pairs)
+                await self.adapter.hset(raw_key, mapping=pairs)
         if to_del:
-            await self.pool.hdel(raw_key, *to_del)
+            await self.adapter.hdel(raw_key, *to_del)
         if self._expiry:
-            await self.pool.expire(raw_key, self._expiry)
+            await self.adapter.expire(raw_key, self._expiry)
 
     async def get(self, key, *, field=None, fields=None):
         raw_key = self.raw_key(key)
         if field:
-            return self.decode(await self.pool.hget(raw_key, field))
+            return self.decode(await self.adapter.hget(raw_key, field))
         elif fields:
-            v = await self.pool.hmget(raw_key, *fields)
+            v = await self.adapter.hmget(raw_key, *fields)
             m = self.model()
             for f, val in zip(fields, v):
                 m[f] = self.decode(val)
         else:
-            a = await self.pool.hgetall(raw_key)
+            a = await self.adapter.hgetall(raw_key)
             m = self.model()
             for f, v in a.items():
-                m[f.decode()] = self.decode(v)
+                if isinstance(f, bytes):
+                    f = f.decode()
+                m[f] = self.decode(v)
         return m
 
 
 class HyperLogLogStorage(KeyEntity, AbstractBaseStorage):
     async def set(self, key, value=True):
         assert value is True
-        await self.pool.pfadd(self.key, key)
+        await self.adapter.pfadd(self.key, key)
 
     async def get(self, key):
         tmp_key = self.raw_key("tmp:hhl:" + key)
-        await self.pool.pfmerge(tmp_key, self.key)
-        result = await self.pool.pfadd(tmp_key, key)
-        await self.pool.delete(tmp_key)
+        await self.adapter.pfmerge(tmp_key, self.key)
+        result = await self.adapter.pfadd(tmp_key, key)
+        await self.adapter.delete(tmp_key)
         return result == 0
 
     async def length(self):
-        c = await self.pool.pfcount(self.key)
+        c = await self.adapter.pfcount(self.key)
         return c
