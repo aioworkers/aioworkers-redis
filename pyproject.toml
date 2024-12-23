@@ -38,7 +38,7 @@ redis-py = ["redis>=4.3"]
 aioredis = ["aioredis==1.3.1"]
 dev-test = [
     "aioworkers==0.28.0",
-    "coverage[toml]==7.6.1",
+    "coverage[toml]==7.6.9",
     "pytest-timeout>=2.3.1",
     "pytest==8.3.4",
     "pytest-aioworkers[asyncio]==0.4.0",
