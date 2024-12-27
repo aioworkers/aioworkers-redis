@@ -21,13 +21,13 @@ jobs:
           - '6'
           - '7'
         python-version:
-          - '3.9'
           - '3.10'
           - '3.11'
+          - '3.12'
         include:
           - os: ubuntu-22.04
             redis-version: '6'
-            python-version: '3.8'
+            python-version: '3.9'
             coverage: true
             lint: true
           - os: ubuntu-22.04
@@ -48,11 +48,11 @@ jobs:
       - name: ruff
         if: ${{ matrix.lint }}
         run: |
-          hatch run lint:style aioworkers_redis tests
+          hatch run lint:style
       - name: mypy
         if: ${{ matrix.lint }}
         run: |
-          hatch run lint:mypy aioworkers_redis tests
+          hatch run lint:typing
       - name: Start Redis
         uses: supercharge/redis-github-action@1.8.0
         with:
