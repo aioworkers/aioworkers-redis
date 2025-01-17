@@ -48,7 +48,7 @@ dev-test = [
 ]
 dev-lint = [
     "ruff==0.9.2",
-    "mypy==1.14.0",
+    "mypy==1.14.1",
 ]
 
 [project.urls]
