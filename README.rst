@@ -74,6 +74,10 @@ Features
   `PFMERGE <https://redis.io/commands/pfmerge>`_,
   `PFCOUNT <https://redis.io/commands/pfcount>`_
 
+* XQueue based on
+  `XADD <https://redis.io/commands/xadd>`_,
+  `XREADGROUP <https://redis.io/commands/xreadgroup>`_
+
 
 Usage
 -----

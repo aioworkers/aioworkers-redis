@@ -1,21 +1,12 @@
 import asyncio
 import time
 
-from aioworkers.queue.base import AbstractQueue, score_queue
+from aioworkers.queue.base import score_queue
 
-from aioworkers_redis.base import KeyEntity
+from aioworkers_redis.base import BaseQueue
 
 
-class Queue(KeyEntity, AbstractQueue):
-    async def init(self):
-        await super().init()
-        self._lock = asyncio.Lock()
-
-    def factory(self, item, config=None):
-        inst = super().factory(item, config=config)
-        inst._lock = asyncio.Lock()
-        return inst
-
+class Queue(BaseQueue):
     async def put(self, value):
         value = self.encode(value)
         return await self.adapter.rpush(self.key, value)

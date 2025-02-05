@@ -1,9 +1,11 @@
+import asyncio
 from typing import Any, Optional, Type, Union
 
 from aioworkers.core.base import AbstractConnector, AbstractNestedEntity, LoggingEntity
 from aioworkers.core.config import ValueExtractor
 from aioworkers.core.formatter import FormattedEntity
 from aioworkers.core.plugin import iter_entry_points
+from aioworkers.queue.base import AbstractQueue
 
 from aioworkers_redis.adapter import Adapter, AdapterHolder
 
@@ -201,4 +203,15 @@ class KeyEntity(Connector):
         inst = super().factory(item, config=config)
         inst._prefix = self.raw_key(self.config.key)
         inst._key = inst.raw_key(item)
+        return inst
+
+
+class BaseQueue(KeyEntity, AbstractQueue):
+    async def init(self):
+        self._lock = asyncio.Lock()
+        await super().init()
+
+    def factory(self, item, config=None):
+        inst = super().factory(item, config=config)
+        inst._lock = asyncio.Lock()
         return inst

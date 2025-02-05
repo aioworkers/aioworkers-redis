@@ -5,6 +5,7 @@ Value = Union[str, bytes, int, float]
 
 
 class Adapter(Protocol):
+    async def execute(self, *args: Value) -> Any: ...
     async def eval(self, script: str, numkeys: int, *args) -> Any: ...
     async def delete(self, key: str) -> Any: ...
     async def expire(self, key: str, seconds: int) -> Any: ...
@@ -32,6 +33,27 @@ class Adapter(Protocol):
     async def zrem(self, key: str, value: Any) -> Any: ...
     async def zcard(self, key: str) -> int: ...
     async def zrange(self, key: str, start: int, stop: int) -> Any: ...
+    async def xadd(
+        self,
+        stream: str,
+        items: Dict[str, Value],
+        *,
+        id: str = "*",
+        mkstream: bool = True,
+        maxlen: Optional[int] = None,
+        minid: Optional[int] = None,
+        approx: bool = True,
+        limit: Optional[int] = None,
+    ) -> str: ...
+    async def xread(
+        self,
+        *streams: str,
+        id: str,
+        block: Optional[int] = None,
+        count: Optional[int] = None,
+        noack: Optional[bool] = None,
+        group: Optional[str] = None,
+    ) -> Dict: ...
 
 
 class AdapterHolder(Protocol):

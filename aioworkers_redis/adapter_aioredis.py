@@ -1,5 +1,6 @@
 import logging
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
+from uuid import uuid4
 
 from aioredis import Redis, create_redis_pool
 
@@ -16,6 +17,7 @@ class AdapterAioRedis:
         logger: logging.Logger = logger,
     ) -> None:
         self.logger = logger
+        self.client_id = str(uuid4())
 
     async def __aenter__(
         self,
@@ -76,3 +78,42 @@ class AdapterAioRedis:
             return self.client.setex(key, ex, value)
         else:
             return self.client.set(key, value)
+
+    async def xadd(self, *args, **kwargs):
+        result = await self.client.xadd(*args, **kwargs)
+        if result:
+            return result.decode("UTF-8")
+
+    async def xread(
+        self,
+        *streams: str,
+        id: str,
+        block: Optional[int] = None,
+        count: Optional[int] = None,
+        noack: Optional[bool] = None,
+        group: Optional[str] = None,
+    ) -> Dict:
+        if group:
+            data = await self.client.xread_group(
+                streams=list(streams),
+                group_name=group,
+                consumer_name=self.client_id,
+                no_ack=noack or False,
+                latest_ids=[">"] * len(streams),
+                timeout=block or 0,
+                count=count,
+            )
+        else:
+            data = await self.client.xread(
+                list(streams),
+                timeout=block,
+                latest_ids=[id] * len(streams),
+                count=count,
+            )
+        result: dict = {}
+        for streamb, *msgs in data:
+            stream = result.setdefault(streamb.decode("UTF-8"), {})
+            for msg_id, msgb in zip(msgs[::2], msgs[1::2]):
+                msg = {k.decode("UTF-8"): v for k, v in msgb.items()}
+                stream[msg_id.decode("UTF-8")] = msg
+        return result
