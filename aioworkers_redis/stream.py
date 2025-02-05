@@ -48,7 +48,7 @@ class XQueue(BaseQueue):
                 id=">",
                 count=1,
                 noack=False,
-                block=timeout,
+                block=int(timeout * 1000),
                 group=self._group_name,
             )
         for _stream, items in data.items():
