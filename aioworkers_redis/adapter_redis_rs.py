@@ -1,5 +1,6 @@
 import logging
 from typing import List, Optional, Union
+from uuid import uuid4
 
 import redis_rs
 
@@ -16,6 +17,7 @@ class AdapterRedisRS:
         logger: logging.Logger = logger,
     ):
         self.logger = logger
+        self.client_id = str(uuid4())
 
     async def __aenter__(
         self,
@@ -45,7 +47,9 @@ class AdapterRedisRS:
             kwargs["username"] = username
         if password is not None:
             kwargs["password"] = password
-        if client_id is not None:
+        if client_id is None:
+            kwargs["client_id"] = self.client_id
+        else:
             kwargs["client_id"] = client_id
 
         nodes = [address] if isinstance(address, str) else address
