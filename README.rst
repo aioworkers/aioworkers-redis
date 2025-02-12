@@ -9,10 +9,6 @@ Redis plugin for `aioworkers`.
 .. image:: https://github.com/aioworkers/aioworkers-redis/workflows/Tests/badge.svg
   :target: https://github.com/aioworkers/aioworkers-redis/actions?query=workflow%3ATests
 
-.. image:: https://codecov.io/gh/aioworkers/aioworkers-redis/branch/master/graph/badge.svg
-  :target: https://codecov.io/gh/aioworkers/aioworkers-redis
-  :alt: Coverage
-
 .. image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v0.json
   :target: https://github.com/charliermarsh/ruff
   :alt: Code style: ruff

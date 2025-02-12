@@ -23,6 +23,7 @@ jobs:
           - '3.10'
           - '3.11'
           - '3.12'
+          - '3.13'
         include:
           - os: ubuntu-22.04
             redis-version: '6'
@@ -36,9 +37,9 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5.4.0
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -63,12 +64,3 @@ jobs:
         if: ${{ matrix.coverage }}
         run: |
           hatch run coverage xml
-      - name: Upload coverage to Codecov
-        if: ${{ matrix.coverage && github.ref == 'refs/heads/master' }}
-        uses: codecov/codecov-action@v5.3.1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: true
