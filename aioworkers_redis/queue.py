@@ -12,12 +12,24 @@ class Queue(BaseQueue):
         return await self.adapter.rpush(self.key, value)
 
     async def get(self, *, timeout: float = 0):
+        deadline: float = 0
+        if timeout:
+            deadline = time.monotonic() + timeout
+        timeout = max(timeout, self._timeout)
+
         async with self._lock:
-            result = await self.adapter.blpop(self.key, timeout=timeout)
-        if result is not None:
-            return self.decode(result[-1])
-        elif timeout:
-            raise TimeoutError
+            while True:
+                if self._blocking:
+                    result = await self.adapter.blpop(self.key, timeout=timeout)
+                    for _key, v in result.items():
+                        return self.decode(v)
+                elif result := await self.adapter.lpop(self.key):
+                    return self.decode(result)
+
+                if deadline and time.monotonic() > deadline:
+                    raise TimeoutError
+                elif not self._blocking:
+                    await asyncio.sleep(self._timeout)
 
     async def length(self):
         return await self.adapter.llen(self.key)
