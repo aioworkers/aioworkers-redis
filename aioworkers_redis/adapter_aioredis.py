@@ -79,6 +79,13 @@ class AdapterAioRedis:
         else:
             return self.client.set(key, value)
 
+    async def blpop(self, *keys, timeout: float) -> Dict:
+        result = await self.client.blpop(*keys, timeout=int(timeout))
+        if result:
+            k, v = result
+            return {k.decode("UTF-8"): v}
+        return {}
+
     async def xadd(self, *args, **kwargs):
         result = await self.client.xadd(*args, **kwargs)
         if result:

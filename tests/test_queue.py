@@ -16,8 +16,9 @@ def config_yaml():
     """.format(uuid=uuid.uuid4())
 
 
-async def test_queue(config):
-    config.update(q=dict(cls="aioworkers_redis.queue.Queue"))
+@pytest.mark.parametrize("blocking", [True, False])
+async def test_queue(config, blocking):
+    config.update(q=dict(cls="aioworkers_redis.queue.Queue", blocking=blocking))
     async with Context(config) as ctx:
         q: Queue = ctx.q
         await q.put(3)
