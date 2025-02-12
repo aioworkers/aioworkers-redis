@@ -41,6 +41,7 @@ Features
 * Queue based on
   `RPUSH <https://redis.io/commands/rpush>`_,
   `BLPOP <https://redis.io/commands/blpop>`_,
+  `LPOP <https://redis.io/commands/lpop>`_,
   `LLEN <https://redis.io/commands/llen>`_,
   `LRANGE <https://redis.io/commands/lrange>`_
 
