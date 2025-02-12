@@ -34,7 +34,7 @@ dependencies = [
     "aioworkers>=0.28.0",
 ]
 [project.optional-dependencies]
-redis-rs = ["redis-rs>=0.14"]
+redis-rs = ["redis-rs>=0.15"]
 redis-py = ["redis>=4.3"]
 aioredis = ["aioredis<2"]
 dev-test = [
