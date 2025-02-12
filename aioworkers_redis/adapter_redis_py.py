@@ -57,6 +57,13 @@ class AdapterRedisPy:
     async def execute(self, *args):
         return await self.client.execute_command(*args)
 
+    async def blpop(self, *keys: str, timeout: float = 0) -> Dict:
+        result = await self.client.blpop(keys, timeout=timeout)
+        if result:
+            k, v = result
+            return {k.decode("UTF-8"): v}
+        return {}
+
     async def xadd(self, *args, **kwargs):
         result = await self.client.xadd(*args, **kwargs)
         if result:

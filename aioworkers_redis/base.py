@@ -207,6 +207,11 @@ class KeyEntity(Connector):
 
 
 class BaseQueue(KeyEntity, AbstractQueue):
+    def set_config(self, config):
+        super().set_config(config)
+        self._blocking: bool = self.config.get_bool("blocking", default=True)
+        self._timeout: float = self.config.get_float("timeout", default=0)
+
     async def init(self):
         self._lock = asyncio.Lock()
         await super().init()
@@ -214,4 +219,6 @@ class BaseQueue(KeyEntity, AbstractQueue):
     def factory(self, item, config=None):
         inst = super().factory(item, config=config)
         inst._lock = asyncio.Lock()
+        inst._blocking = self._blocking
+        inst._timeout = self._timeout
         return inst
