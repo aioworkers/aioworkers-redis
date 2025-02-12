@@ -209,8 +209,8 @@ class KeyEntity(Connector):
 class BaseQueue(KeyEntity, AbstractQueue):
     def set_config(self, config):
         super().set_config(config)
-        self._blocking = self.config.get_bool("blocking", default=True)
-        self._timeout = self.config.get_float("timeout", default=1.0)
+        self._blocking: bool = self.config.get_bool("blocking", default=True)
+        self._timeout: float = self.config.get_float("timeout", default=0)
 
     async def init(self):
         self._lock = asyncio.Lock()
