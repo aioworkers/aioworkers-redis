@@ -105,7 +105,7 @@ class HyperLogLogStorage(KeyEntity, AbstractBaseStorage):
         await self.adapter.pfmerge(tmp_key, self.key)
         result = await self.adapter.pfadd(tmp_key, key)
         await self.adapter.delete(tmp_key)
-        return result == 0
+        return not result
 
     async def length(self):
         c = await self.adapter.pfcount(self.key)
