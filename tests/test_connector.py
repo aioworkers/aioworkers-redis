@@ -3,6 +3,8 @@ from unittest import mock
 import pytest
 from aioworkers.utils import import_name
 
+from aioworkers_redis.base import Connector
+
 
 @pytest.fixture
 def config_yaml():
@@ -20,6 +22,21 @@ async def test_connect(context):
     assert context.connector["b"]["c"].raw_key("3") == "a:b:c:3"
     assert context.connector["c"].raw_key("3") == "a:c:3"
     assert context.connector.clean_key("a:3") == "3"
+
+
+def test_brackets_no():
+    c = Connector(name="x")
+    assert c.raw_key("key") == "key"
+    assert c.a.raw_key("key") == "a:key"
+    assert c["a"].raw_key("key") == "a:key"
+
+
+def test_brackets_yes():
+    c = Connector(name="x", brackets=True)
+    assert c.raw_key("key") == "{key}"
+    assert c.a.raw_key("key") == "a:{key}"
+    assert c.a.b.raw_key("key") == "a:b:{key}"
+    assert c["a"].raw_key("key") == "{a}:key"
 
 
 async def test_dsn(config):

@@ -22,26 +22,28 @@ class Connector(
     LoggingEntity,
 ):
     def __init__(self, *args, **kwargs):
-        self._joiner: str = ":"
-        self._prefix: str = ""
+        self._joiner: str = kwargs.get("joiner", ":")
+        self._prefix: str = kwargs.get("prefix", "")
+        self._brackets: bool = kwargs.get("brackets", False)
         self._connector: Optional[Connector] = None
         self._adapter_holder: Optional[AdapterHolder] = None
         self._adapter: Optional[Adapter] = None
+        kwargs.setdefault("logger", "aioworkers_redis")
         super().__init__(*args, **kwargs)
 
     def set_config(self, config):
-        self._joiner = config.get("joiner", ":")
-        self._prefix = config.get("prefix", "")
-        cfg = config.new_parent(logger="aioworkers_redis")
-        c = cfg.get("connection")
+        self._joiner = config.get("joiner", self._joiner)
+        self._prefix = config.get("prefix", self._prefix)
+        self._brackets = config.get("brackets", self._brackets)
+        c = config.get("connection")
         if not isinstance(c, str):
-            if cfg.get("dsn"):
-                cfg = cfg.new_child(connection=dict(dsn=cfg.get("dsn")))
+            if config.get("dsn"):
+                config = config.new_child(connection=dict(dsn=config.get("dsn")))
         elif c.startswith("redis://"):
-            cfg = cfg.new_child(connection=dict(dsn=c))
+            config = config.new_child(connection=dict(dsn=c))
         elif not c.startswith("."):
             raise ValueError("Connector link must be startswith point .%s" % c)
-        super().set_config(cfg)
+        super().set_config(config)
 
     @property
     def pool(self) -> Client:
@@ -99,7 +101,32 @@ class Connector(
             format=self.config.get("format"),
         )
 
+    def __getattr__(self, item):
+        if old := self._brackets:
+            self._brackets = False
+        try:
+            result = super().__getattr__(item)
+            if old:
+                result._brackets = old
+        finally:
+            if old:
+                self._brackets = old
+        return result
+
+    def __getitem__(self, item):
+        if self._brackets:
+            item = f"{{{item}}}"
+        return super().__getitem__(item)
+
     def raw_key(self, key: str) -> str:
+        if not self._brackets:
+            pass
+        elif key == "*":
+            pass
+        elif "{" in key:
+            pass
+        else:
+            key = f"{{{key}}}"
         k = [i for i in (self._prefix, key) if i]
         return self._joiner.join(k)
 

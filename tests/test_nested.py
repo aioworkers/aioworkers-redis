@@ -22,6 +22,7 @@ async def test_connect(context):
 
 def test_child_prefix(context):
     c = context.connector
+    assert c.b._prefix == "a:b"
     assert c.raw_key("b:x") == c.b.raw_key("x")
     assert c.raw_key("z:x") == c.c.raw_key("x")
 
