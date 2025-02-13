@@ -19,6 +19,14 @@ def config_yaml():
     """.format(uuid=uuid.uuid4())
 
 
+def test_brackets_yes():
+    c = Storage(name="x", brackets=True, prefix="a")
+    assert c.raw_key("key") == "a:{key}"
+    assert c.b.raw_key("key") == "a:b:{key}"
+    assert c.b.d.raw_key("key") == "a:b:d:{key}"
+    assert c["a"].raw_key("key") == "a:{a}:key"
+
+
 async def test_storage(context):
     s: Storage = context.storage
     await s.set("g", {"f": 3})
