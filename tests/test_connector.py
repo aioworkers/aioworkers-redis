@@ -82,8 +82,10 @@ async def test_link(config):
             "connector.name": "connector",
         }
     )
+    ctx = mock.Mock()
+    ctx.get_object()._is_ready = mock.AsyncMock()
     cls = import_name(config.connector.cls)
-    async with cls(config.connector, context=mock.Mock()) as c:
+    async with cls(config.connector, context=ctx) as c:
         assert c.connector
 
 

@@ -28,6 +28,7 @@ class Connector(
         self._connector: Optional[Connector] = None
         self._adapter_holder: Optional[AdapterHolder] = None
         self._adapter: Optional[Adapter] = None
+        self._is_ready: asyncio.Event = asyncio.Event()
         kwargs.setdefault("logger", "aioworkers_redis")
         super().__init__(*args, **kwargs)
 
@@ -139,6 +140,7 @@ class Connector(
     async def connect(self):
         connector = self._connector or self._get_connector()
         if connector is not self:
+            await connector._is_ready.wait()
             return
 
         cfg = self.config.get("connection")
@@ -194,6 +196,7 @@ class Connector(
                 self._adapter_holder = factory(logger=self.logger)
                 self.logger.info("Create client with address %s", address)
                 self._adapter = await self._adapter_holder.__aenter__(address, **cfg)
+                self._is_ready.set()
                 break
         else:
             raise ImportError("Try loading plugins " + ",".join(e.name for e in entry_points))
