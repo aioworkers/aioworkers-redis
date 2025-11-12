@@ -54,7 +54,7 @@ jobs:
         run: |
           hatch run lint:typing
       - name: Start Redis
-        uses: supercharge/redis-github-action@1.8.0
+        uses: supercharge/redis-github-action@1.8.1
         with:
           redis-version: ${{ matrix.redis-version }}
       - name: Tests with coverage
